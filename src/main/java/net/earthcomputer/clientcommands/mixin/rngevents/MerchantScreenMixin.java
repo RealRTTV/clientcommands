@@ -52,12 +52,12 @@ public abstract class MerchantScreenMixin extends AbstractContainerScreen<Mercha
                             VillagerCommand.Offer[] availableOffers = menu.getOffers().stream().map(VillagerCommand.Offer::new).toArray(VillagerCommand.Offer[]::new);
                             List<VillagerCommand.Offer[]> beforeOffers = VillagerCracker.surroundingOffers.getFirst();
                             List<VillagerCommand.Offer[]> afterOffers = VillagerCracker.surroundingOffers.getSecond();
-                            OptionalInt currentOfferTickIndex = OptionalInt.empty();
-                            for (int i = beforeOffers.size() - 1; i >= 0; i--) {
-                                VillagerCommand.Offer[] offers = beforeOffers.get(i);
+                            OptionalInt ticksAhead = OptionalInt.empty();
+                            for (int i = 0; i < beforeOffers.size(); i++) {
+                                VillagerCommand.Offer[] offers = beforeOffers.get(beforeOffers.size() - 1 - i);
                                 if (Arrays.equals(offers, availableOffers)) {
                                     // we need to adjust by -1 to get it to not be 0 for the last value in `beforeOffers`
-                                    currentOfferTickIndex = OptionalInt.of(-(beforeOffers.size() - 1 - i) - 1);
+                                    ticksAhead = OptionalInt.of(i + 1);
                                     break;
                                 }
                             }
@@ -65,18 +65,18 @@ public abstract class MerchantScreenMixin extends AbstractContainerScreen<Mercha
                             for (int i = 0; i < afterOffers.size(); i++) {
                                 VillagerCommand.Offer[] offers = afterOffers.get(i);
                                 if (Arrays.equals(offers, availableOffers)) {
-                                    if (currentOfferTickIndex.isEmpty() || Mth.abs(currentOfferTickIndex.getAsInt()) > i + 1) {
+                                    if (ticksAhead.isEmpty() || Mth.abs(ticksAhead.getAsInt()) > -(i + 1)) {
                                         // we need to adjust by 1 to get it to not be 0 for the first value in `afterOffers`
-                                        currentOfferTickIndex = OptionalInt.of(i + 1);
+                                        ticksAhead = OptionalInt.of(-(i + 1));
                                         break;
                                     }
                                 }
                             }
 
-                            if (currentOfferTickIndex.isPresent()) {
-                                // we negate the currentOfferTickIndex as adjustment because in the case that our actual offers are found
-                                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.failure.detailed", Configs.villagerAdjustment * 50, -currentOfferTickIndex.getAsInt()).withStyle(ChatFormatting.RED), 100);
-                                Configs.villagerAdjustment -= -currentOfferTickIndex.getAsInt();
+                            if (ticksAhead.isPresent()) {
+                                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.failure.detailed", Configs.villagerAdjustment * 50, ticksAhead.getAsInt()).withStyle(ChatFormatting.RED), 100);
+                                minecraft.player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
+                                Configs.villagerAdjustment -= ticksAhead.getAsInt();
                                 break a;
                             }
                         }
