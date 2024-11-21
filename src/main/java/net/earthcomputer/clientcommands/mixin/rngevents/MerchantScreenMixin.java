@@ -76,6 +76,7 @@ public abstract class MerchantScreenMixin extends AbstractContainerScreen<Mercha
                             if (currentOfferTickIndex.isPresent()) {
                                 // we negate the currentOfferTickIndex as adjustment because in the case that our actual offers are found
                                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.failure.detailed", Configs.villagerAdjustment * 50, -currentOfferTickIndex.getAsInt()).withStyle(ChatFormatting.RED), 100);
+                                Configs.villagerAdjustment -= -currentOfferTickIndex.getAsInt();
                                 break a;
                             }
                         }
