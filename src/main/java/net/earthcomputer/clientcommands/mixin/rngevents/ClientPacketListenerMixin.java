@@ -71,7 +71,7 @@ public abstract class ClientPacketListenerMixin {
 
     @Inject(method = "handleSetTime", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/util/thread/BlockableEventLoop;)V"))
     private void handleSetTime(ClientboundSetTimePacket packet, CallbackInfo ci) {
-        if (level.getDayTime() < 12000 && packet.getDayTime() >= 12000) {
+        if (level.getDayTime() < 12000 && packet.dayTime() >= 12000) {
             Villager targetVillager = VillagerCracker.getVillager();
             if (targetVillager != null) {
                 ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));

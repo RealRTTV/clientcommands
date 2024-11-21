@@ -11,6 +11,7 @@ import dev.xpple.clientarguments.arguments.CRangeArgument;
 import net.earthcomputer.clientcommands.Configs;
 import net.earthcomputer.clientcommands.features.FishingCracker;
 import net.earthcomputer.clientcommands.features.VillagerCracker;
+import net.earthcomputer.clientcommands.features.VillagerRngSimulator;
 import net.earthcomputer.clientcommands.interfaces.IVillager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
@@ -30,10 +31,13 @@ import net.minecraft.world.entity.npc.VillagerTrades;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.trading.ItemCost;
+import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -136,7 +140,7 @@ public class VillagerCommand {
             if (goals.size() == 1) {
                 source.sendFeedback(Component.translatable("commands.cvillager.listGoals.success.one"));
             } else {
-                source.sendFeedback(Component.translatable("commands.cvillager.listGoals.success", FishingCracker.goals.size() + 1));
+                source.sendFeedback(Component.translatable("commands.cvillager.listGoals.success", goals.size() + 1));
             }
             for (int i = 0; i < goals.size(); i++) {
                 Goal goal = goals.get(i);
@@ -176,7 +180,7 @@ public class VillagerCommand {
         if (pos == null) {
             ClientCommandHelper.sendFeedback("commands.cvillager.clock.cleared");
         } else {
-            ClientCommandHelper.sendFeedback("commands.cvillager.clock.set", pos.pos().getX(), pos.pos().getY(), pos.pos().getZ(), pos.dimension().location());
+            ClientCommandHelper.sendFeedback("commands.cvillager.clock.set", pos.pos().getX(), pos.pos().getY(), pos.pos().getZ(), String.valueOf(pos.dimension().location()));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -187,7 +191,7 @@ public class VillagerCommand {
         if (pos == null) {
             ClientCommandHelper.sendFeedback("commands.cvillager.clock.set.cleared");
         } else {
-            ClientCommandHelper.sendFeedback("commands.cvillager.clock.set", pos.getX(), pos.getY(), pos.getZ(), dimension.location());
+            ClientCommandHelper.sendFeedback("commands.cvillager.clock.set", pos.getX(), pos.getY(), pos.getZ(), String.valueOf(dimension.location()));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -231,22 +235,24 @@ public class VillagerCommand {
 
         VillagerTrades.ItemListing[] listings = VillagerTrades.TRADES.get(profession).getOrDefault(crackedLevel, new VillagerTrades.ItemListing[0]);
         int adjustmentTicks = 1 + (levelUp ? -40 : 0);
-        Pair<Integer, Offer> pair = iVillager.clientcommands_getVillagerRngSimulator().bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerBruteForceSimulationCalls, offer -> VillagerCommand.goals.stream().anyMatch(goal -> goal.matches(offer))).mapFirst(x -> x + adjustmentTicks * 2);
-        int calls = pair.getFirst();
-        Offer offer = pair.getSecond();
-        if (calls < 0) {
+        VillagerRngSimulator.BruteForceResult result = iVillager.clientcommands_getVillagerRngSimulator().bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerBruteForceSimulationCalls, offer -> VillagerCommand.goals.stream().anyMatch(goal -> goal.matches(offer)));
+        if (result == null) {
             ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.bruteForce.failed", Configs.maxVillagerBruteForceSimulationCalls).withStyle(ChatFormatting.RED), 100);
-        } else {
-            String price;
-            if (offer.second() == null) {
-                price = displayText(offer.first(), false);
-            } else {
-                price = displayText(offer.first(), false) + " + " + displayText(offer.second(), false);
-            }
-            ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.bruteForce.success", displayText(offer.result(), false), price, calls).withStyle(ChatFormatting.GREEN));
-            VillagerCracker.targetOffer = offer;
-            iVillager.clientcommands_getVillagerRngSimulator().setCallsUntilToggleGui(calls);
+            return Command.SINGLE_SUCCESS;
         }
+        Pair<List<Offer[]>, List<Offer[]>> surroundingOffers = iVillager.clientcommands_getVillagerRngSimulator().generateSurroundingOffers(listings, result.ticksPassed(), 1000);
+        int calls = result.callsAtInteraction() + adjustmentTicks * 2;
+        Offer offer = result.offer();
+        String price;
+        if (offer.second() == null) {
+            price = displayText(offer.first(), false);
+        } else {
+            price = displayText(offer.first(), false) + " + " + displayText(offer.second(), false);
+        }
+        ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.bruteForce.success", displayText(offer.result(), false), price, calls).withStyle(ChatFormatting.GREEN));
+        VillagerCracker.targetOffer = offer;
+        VillagerCracker.surroundingOffers = surroundingOffers;
+        iVillager.clientcommands_getVillagerRngSimulator().setCallsUntilToggleGui(calls);
 
         return Command.SINGLE_SUCCESS;
     }
@@ -269,14 +275,18 @@ public class VillagerCommand {
     }
 
     public record Offer(ItemStack first, @Nullable ItemStack second, ItemStack result) {
+        public Offer(MerchantOffer offer) {
+            this(offer.getBaseCostA(), offer.getItemCostB().map(ItemCost::itemStack).orElse(null), offer.getResult());
+        }
+
         @Override
         public boolean equals(Object obj) {
-            if (!(obj instanceof Offer other)) {
+            if (!(obj instanceof Offer(ItemStack offerFirst, ItemStack offerSecond, ItemStack offerResult))) {
                 return false;
             }
-            return ItemStack.isSameItemSameComponents(this.first, other.first) && this.first.getCount() == other.first.getCount()
-                && (this.second == other.second || this.second != null && other.second != null && ItemStack.isSameItemSameComponents(this.second, other.second) && this.second.getCount() == other.second.getCount())
-                && ItemStack.isSameItemSameComponents(this.result, other.result) && this.result.getCount() == other.result.getCount();
+            return ItemStack.isSameItemSameComponents(this.first, offerFirst) && this.first.getCount() == offerFirst.getCount()
+                && (this.second == offerSecond || this.second != null && offerSecond != null && ItemStack.isSameItemSameComponents(this.second, offerSecond) && this.second.getCount() == offerSecond.getCount())
+                && ItemStack.isSameItemSameComponents(this.result, offerResult) && this.result.getCount() == offerResult.getCount();
         }
 
         @Override
@@ -311,7 +321,7 @@ public class VillagerCommand {
             throw ITEM_QUANTITY_OUT_OF_RANGE_EXCEPTION.create(count.min().map(Object::toString).orElse("") + ".." + count.max().map(Object::toString).orElse(""), maxCount);
         }
 
-        return rangeString + name;
+        return rangeString + " " + name;
     }
 
     @Nullable

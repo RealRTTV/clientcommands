@@ -59,7 +59,7 @@ public abstract class VillagerMixin extends AbstractVillager implements IVillage
                 minecraft.screen.onClose();
             } else {
                 InteractionResult result = minecraft.gameMode.interact(minecraft.player, this, InteractionHand.MAIN_HAND);
-                if (result.consumesAction() && result.shouldSwing()) {
+                if (result instanceof InteractionResult.Success success && success.swingSource() == InteractionResult.SwingSource.CLIENT) {
                     minecraft.player.swing(InteractionHand.MAIN_HAND);
                 }
             }

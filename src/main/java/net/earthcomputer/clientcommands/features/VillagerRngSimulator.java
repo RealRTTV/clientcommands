@@ -31,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -182,15 +183,14 @@ public class VillagerRngSimulator {
             return null;
         }
 
-        RandomSource rand = new LegacyRandomSource(random.getSeed() ^ 0x5deece66dL);;
-
+        RandomSource rand = new LegacyRandomSource(random.getSeed() ^ 0x5deece66dL);
         ArrayList<VillagerTrades.ItemListing> newListings = new ArrayList<>(List.of(listings));
         int i = 0;
         while (i < 2 && !newListings.isEmpty()) {
             VillagerTrades.ItemListing listing = newListings.remove(rand.nextInt(newListings.size()));
             MerchantOffer offer = listing.getOffer(trader, rand);
             if (offer != null) {
-                VillagerCommand.Offer x = new VillagerCommand.Offer(offer.getBaseCostA(), offer.getItemCostB().map(ItemCost::itemStack).orElse(null), offer.getResult());
+                VillagerCommand.Offer x = new VillagerCommand.Offer(offer);
                 if (predicate.test(x)) {
                     return x;
                 } else {
@@ -199,6 +199,28 @@ public class VillagerRngSimulator {
             }
         }
         return null;
+    }
+
+    @Nullable
+    public VillagerCommand.Offer[] generateOffers(VillagerTrades.ItemListing[] listings, Entity trader) {
+        if (!getCrackedState().isCracked()) {
+            return null;
+        }
+
+        VillagerCommand.Offer[] offers = new VillagerCommand.Offer[Math.min(listings.length, 2)];
+
+        RandomSource rand = new LegacyRandomSource(random.getSeed() ^ 0x5deece66dL);
+        ArrayList<VillagerTrades.ItemListing> newListings = new ArrayList<>(List.of(listings));
+
+        for (int i = 0; i < offers.length; i++) {
+            VillagerTrades.ItemListing listing = newListings.remove(rand.nextInt(newListings.size()));
+            MerchantOffer offer = listing.getOffer(trader, rand);
+            if (offer != null) {
+                offers[i] = new VillagerCommand.Offer(offer);
+            }
+        }
+
+        return offers;
     }
 
     public void setCallsUntilToggleGui(int calls) {
@@ -383,29 +405,60 @@ public class VillagerRngSimulator {
         }
     }
 
-    public Pair<Integer, VillagerCommand.Offer> bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxCalls, Predicate<VillagerCommand.Offer> predicate) {
+    @Nullable
+    public BruteForceResult bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxCalls, Predicate<VillagerCommand.Offer> predicate) {
         Villager targetVillager = VillagerCracker.getVillager();
         if (targetVillager != null && getCrackedState().isCracked()) {
             VillagerRngSimulator rng = this.copy();
             int startingCalls = rng.getTotalCalls();
+            int ticksPassed = 0;
 
             for (int i = 0; i < minTicks; i++) {
                 rng.simulateTick();
+                ticksPassed++;
             }
 
             while (rng.getTotalCalls() < maxCalls + startingCalls) {
                 VillagerRngSimulator randomBranch = rng.copy();
                 randomBranch.simulateTick();
+                ticksPassed++;
                 VillagerCommand.Offer offer = randomBranch.anyOffersMatch(listings, targetVillager, predicate);
                 if (offer != null) {
                     // we do the calls before this ticks processing so that since with 0ms ping, the server reads it next tick
-                    return Pair.of(rng.getTotalCalls() - startingCalls, offer);
+                    return new BruteForceResult(rng.getTotalCalls() - startingCalls, ticksPassed, offer);
                 }
                 rng.simulateTick();
             }
         }
 
-        return Pair.of(-1_000_000, null);
+        return null;
+    }
+
+    public Pair<List<VillagerCommand.Offer[]>, List<VillagerCommand.Offer[]>> generateSurroundingOffers(VillagerTrades.ItemListing[] listings, int centerTicks, int radius) {
+        Villager targetVillager = VillagerCracker.getVillager();
+
+        if (targetVillager == null || !getCrackedState().isCracked()) {
+            return Pair.of(List.of(), List.of());
+        }
+
+        List<VillagerCommand.Offer[]> before = new ArrayList<>(radius);
+        List<VillagerCommand.Offer[]> after = new ArrayList<>(radius);
+
+        VillagerRngSimulator rng = this.copy();
+        for (int i = 0; i < Math.max(0, centerTicks - radius); i++) {
+            rng.simulateTick();
+        }
+        for (int i = Math.max(0, centerTicks - radius); i < centerTicks - 1; i++) {
+            rng.simulateTick();
+            before.add(rng.generateOffers(listings, targetVillager));
+        }
+        rng.simulateTick(); // this would be our actual offer (at `centerTicks` ticks of advancement)
+        for (int i = 0; i < radius; i++) {
+            rng.simulateTick();
+            after.add(rng.generateOffers(listings, targetVillager));
+        }
+
+        return Pair.of(before, after);
     }
 
     public long[] crackSeed() {
@@ -489,4 +542,6 @@ public class VillagerRngSimulator {
             };
         }
     }
+
+    public record BruteForceResult(int callsAtInteraction, int ticksPassed, VillagerCommand.Offer offer) {}
 }

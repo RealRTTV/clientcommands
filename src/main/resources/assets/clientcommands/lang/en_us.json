@@ -252,6 +252,7 @@
   "commands.cvillager.crack.failed": "Failed to crack villager seed (found %d seeds), re-cracking...",
   "commands.cvillager.crack.success": "Villager RNG cracked: %d",
   "commands.cvillager.failure": "Got the incorrect trade with correction of %dms",
+  "commands.cvillager.failure.detailed": "Got the incorrect trade with correction of %dms (was %d ticks ahead)",
   "commands.cvillager.goalAdded": "Added goal successfully.",
   "commands.cvillager.help.day": "Help: Villager RNG manipulation is likely to break if it's not night-time",
   "commands.cvillager.help.noClock": "Help: Villager RNG manipulation requires a 20 Hz clock",

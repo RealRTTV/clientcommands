@@ -493,7 +493,8 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
 
         @Override
         public String toString() {
-            return Component.translatable(enchantment.unwrapKey().get().location().toLanguageKey("enchantment")).getString() + " " + Objects.requireNonNullElse(VillagerCommand.displayRange(enchantment.value().getMaxLevel(), level), "*");
+            String quantity = VillagerCommand.displayRange(enchantment.value().getMaxLevel(), level);
+            return Component.translatable(enchantment.unwrapKey().get().location().toLanguageKey("enchantment")).getString() + " " + (quantity == null || quantity.isEmpty() ? "*" : quantity);
         }
     }
 }

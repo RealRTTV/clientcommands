@@ -1,5 +1,6 @@
 package net.earthcomputer.clientcommands.features;
 
+import com.mojang.datafixers.util.Pair;
 import net.earthcomputer.clientcommands.command.ClientCommandHelper;
 import net.earthcomputer.clientcommands.command.VillagerCommand;
 import net.earthcomputer.clientcommands.interfaces.IVillager;
@@ -14,6 +15,7 @@ import net.minecraft.world.entity.npc.Villager;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.List;
 import java.util.UUID;
 
 public class VillagerCracker {
@@ -28,6 +30,7 @@ public class VillagerCracker {
     private static GlobalPos clockPos = null;
     @Nullable
     public static VillagerCommand.Offer targetOffer = null;
+    public static Pair<List<VillagerCommand.Offer[]>, List<VillagerCommand.Offer[]>> surroundingOffers = null;
     @Nullable
     private static Long lastServerTick = null;
     private static boolean receivedClockRateWarning = false;
@@ -91,7 +94,7 @@ public class VillagerCracker {
             return;
         }
 
-        switch (packet.getSound().value().getLocation().toString()) {
+        switch (packet.getSound().value().location().toString()) {
             case "minecraft:entity.villager.ambient", "minecraft:entity.villager.trade" -> ((IVillager) targetVillager).clientcommands_onAmbientSoundPlayed(packet.getPitch());
             case "minecraft:entity.villager.no" -> ((IVillager) targetVillager).clientcommands_onNoSoundPlayed(packet.getPitch());
             case "minecraft:entity.villager.yes" -> ((IVillager) targetVillager).clientcommands_onYesSoundPlayed(packet.getPitch());
