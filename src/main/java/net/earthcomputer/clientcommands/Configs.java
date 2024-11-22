@@ -181,5 +181,5 @@ public class Configs {
     }
 
     @Config(temporary = true)
-    public static int villagerAdjustment = 0;
+    public static int villagerAdjustmentTicks = 0;
 }

@@ -33,7 +33,7 @@ public class VillagerCracker {
     public static Pair<List<VillagerCommand.Offer[]>, List<VillagerCommand.Offer[]>> surroundingOffers = null;
     @Nullable
     private static Long lastServerTick = null;
-    private static boolean receivedClockRateWarning = false;
+    private static long lastClockRateWarning = 0;
 
     @Nullable
     public static Villager getVillager() {
@@ -120,9 +120,9 @@ public class VillagerCracker {
             return;
         }
 
-        if (lastServerTick != null && now - lastServerTick > 80L && !receivedClockRateWarning) {
+        if (lastServerTick != null && now - lastServerTick > 80L && now - lastClockRateWarning >= 60_000L) {
             ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.tooSlow"));
-            receivedClockRateWarning = true;
+            lastClockRateWarning = now;
         }
 
         ((IVillager) targetVillager).clientcommands_onServerTick();

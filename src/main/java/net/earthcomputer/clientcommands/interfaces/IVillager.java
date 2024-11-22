@@ -1,6 +1,9 @@
 package net.earthcomputer.clientcommands.interfaces;
 
+import net.earthcomputer.clientcommands.command.VillagerCommand;
 import net.earthcomputer.clientcommands.features.VillagerRngSimulator;
+
+import java.util.List;
 
 public interface IVillager {
     VillagerRngSimulator clientcommands_getVillagerRngSimulator();
@@ -16,4 +19,6 @@ public interface IVillager {
     void clientcommands_onXpOrbSpawned(int value);
 
     void clientcommands_onServerTick();
+
+    void clientcommands_onGuiOpened(List<VillagerCommand.Offer> list);
 }

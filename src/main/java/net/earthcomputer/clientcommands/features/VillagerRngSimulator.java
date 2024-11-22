@@ -11,30 +11,31 @@ import net.earthcomputer.clientcommands.Configs;
 import net.earthcomputer.clientcommands.command.ClientCommandHelper;
 import net.earthcomputer.clientcommands.command.VillagerCommand;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerTrades;
-import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 public class VillagerRngSimulator {
@@ -147,7 +148,7 @@ public class VillagerRngSimulator {
     }
 
     public boolean shouldInteractWithVillager() {
-        boolean shouldInteractWithVillager = totalCalls - callsAtStartOfBruteForce >= callsInBruteForce - Configs.villagerAdjustment * 2 && callsInBruteForce > 0;
+        boolean shouldInteractWithVillager = totalCalls - callsAtStartOfBruteForce >= callsInBruteForce - Configs.villagerAdjustmentTicks * 2 && callsInBruteForce > 0;
         if (shouldInteractWithVillager) {
             reset();
         }
@@ -174,7 +175,7 @@ public class VillagerRngSimulator {
     }
 
     public void updateProgressBar() {
-        ClientCommandHelper.updateOverlayProgressBar(Math.min(callsInBruteForce - Configs.villagerAdjustment * 2, totalCalls - callsAtStartOfBruteForce), callsInBruteForce - Configs.villagerAdjustment * 2, 50, 60);
+        ClientCommandHelper.updateOverlayProgressBar(Math.min(callsInBruteForce - Configs.villagerAdjustmentTicks * 2, totalCalls - callsAtStartOfBruteForce), callsInBruteForce - Configs.villagerAdjustmentTicks * 2, 50, 60);
     }
 
     @Nullable
@@ -347,6 +348,8 @@ public class VillagerRngSimulator {
             if (pitch != simulatedPitch) {
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.no").withStyle(ChatFormatting.RED), 100);
                 reset();
+            } else {
+                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             }
         }
     }
@@ -362,6 +365,8 @@ public class VillagerRngSimulator {
             if (pitch != simulatedPitch) {
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.yes").withStyle(ChatFormatting.RED), 100);
                 reset();
+            } else {
+                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             }
         }
     }
@@ -375,17 +380,17 @@ public class VillagerRngSimulator {
 
             totalCalls += 2;
             float simulatedPitch = (random.nextFloat() - random.nextFloat()) * 0.4f + 1.0f;
-            if (pitch != simulatedPitch) {
+            if (pitch == simulatedPitch) {
+                int iterations = Mth.ceil(1.0f + EntityType.VILLAGER.getDimensions().width() * 20.0f);
+                totalCalls += iterations * 10;
+                random.advance(iterations * 10L);
+                simulateTick();
+
+                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
+            } else {
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.splash").withStyle(ChatFormatting.RED), 100);
                 reset();
-                return;
             }
-
-            int iterations = Mth.ceil(1.0f + EntityType.VILLAGER.getDimensions().width() * 20.0f);
-            totalCalls += iterations * 10;
-            random.advance(iterations * 10L);
-
-            simulateTick();
         }
     }
 
@@ -401,6 +406,8 @@ public class VillagerRngSimulator {
             if (value != simulatedValue) {
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.xpOrb").withStyle(ChatFormatting.RED), 100);
                 reset();
+            } else {
+                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             }
         }
     }
@@ -459,6 +466,61 @@ public class VillagerRngSimulator {
         }
 
         return Pair.of(before, after);
+    }
+
+    private int[] possibleTicksAhead(VillagerCommand.Offer[] targetOffers, List<VillagerCommand.Offer[]> before, List<VillagerCommand.Offer[]> after) {
+        List<Integer> misses = new ArrayList<>();
+        for (int i = 0; i < before.size(); i++) {
+            VillagerCommand.Offer[] offers = before.get(i);
+            if (Arrays.equals(offers, targetOffers)) {
+                // we need to adjust by 1 to get it to not be 0 for the last value in `beforeOffers`
+                misses.add((before.size() - 1 - i) + 1);
+            }
+        }
+
+        for (int i = 0; i < after.size(); i++) {
+            VillagerCommand.Offer[] offers = after.get(i);
+            if (Arrays.equals(offers, targetOffers)) {
+                // we need to adjust by 1 to get it to not be 0 for the first value in `afterOffers`
+                misses.add(-(i + 1));
+            }
+        }
+        return misses.stream().mapToInt(i -> i).toArray();
+    }
+
+    public void onGuiOpened(List<VillagerCommand.Offer> availableOffersList, Villager villager) {
+        final LocalPlayer player = Minecraft.getInstance().player;
+        if (player.distanceTo(villager) > 2.0) {
+            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.distance").withStyle(ChatFormatting.RED), 100);
+            reset();
+            return;
+        }
+
+        if (VillagerCracker.targetOffer != null) {
+            if (availableOffersList.contains(VillagerCracker.targetOffer)) {
+                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.success", Configs.villagerAdjustmentTicks * 50).withStyle(ChatFormatting.GREEN), 100);
+                player.playNotifySound(SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 1.0f, 2.0f);
+            } else {
+                a: {
+                    if (VillagerCracker.surroundingOffers != null) {
+                        int[] possibleTicksAhead = possibleTicksAhead(availableOffersList.toArray(VillagerCommand.Offer[]::new), VillagerCracker.surroundingOffers.getFirst(), VillagerCracker.surroundingOffers.getSecond());
+
+                        if (possibleTicksAhead.length > 0) {
+                            int zeroIndex = Math.max(possibleTicksAhead.length - 1, Arrays.binarySearch(possibleTicksAhead, 0));
+                            int bestAdjustment = possibleTicksAhead.length - 1 > zeroIndex && Math.abs(possibleTicksAhead[zeroIndex + 1]) <= Math.abs(possibleTicksAhead[zeroIndex + 1]) ? possibleTicksAhead[zeroIndex + 1] : possibleTicksAhead[zeroIndex];
+                            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.failure.detailed", Configs.villagerAdjustmentTicks * 50, Arrays.toString(possibleTicksAhead), bestAdjustment).withStyle(ChatFormatting.RED), 100);
+                            player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
+                            Configs.villagerAdjustmentTicks -= bestAdjustment;
+                            break a;
+                        }
+                    }
+
+                    ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.failure", Configs.villagerAdjustmentTicks * 50).withStyle(ChatFormatting.RED), 100);
+                    player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
+                }
+            }
+            VillagerCracker.targetOffer = null;
+        }
     }
 
     public long[] crackSeed() {

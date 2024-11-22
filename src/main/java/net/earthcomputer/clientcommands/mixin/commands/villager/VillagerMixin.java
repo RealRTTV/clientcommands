@@ -1,9 +1,19 @@
 package net.earthcomputer.clientcommands.mixin.commands.villager;
 
+import net.earthcomputer.clientcommands.Configs;
+import net.earthcomputer.clientcommands.command.ClientCommandHelper;
+import net.earthcomputer.clientcommands.command.VillagerCommand;
+import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.earthcomputer.clientcommands.features.VillagerRngSimulator;
 import net.earthcomputer.clientcommands.interfaces.IVillager;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.MerchantScreen;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
@@ -13,6 +23,10 @@ import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.OptionalInt;
 
 @Mixin(Villager.class)
 public abstract class VillagerMixin extends AbstractVillager implements IVillager {
@@ -69,5 +83,10 @@ public abstract class VillagerMixin extends AbstractVillager implements IVillage
     @Override
     public VillagerRngSimulator clientcommands_getVillagerRngSimulator() {
         return rng;
+    }
+
+    @Override
+    public void clientcommands_onGuiOpened(List<VillagerCommand.Offer> availableOffersList) {
+        rng.onGuiOpened(availableOffersList, (Villager) (Object) this);
     }
 }
