@@ -507,7 +507,7 @@ public class VillagerRngSimulator {
 
                         if (possibleTicksAhead.length > 0) {
                             int zeroIndex = Math.max(possibleTicksAhead.length - 1, Arrays.binarySearch(possibleTicksAhead, 0));
-                            int bestAdjustment = possibleTicksAhead.length - 1 > zeroIndex && Math.abs(possibleTicksAhead[zeroIndex]) > Math.abs(possibleTicksAhead[zeroIndex + 1]) ? possibleTicksAhead[zeroIndex + 1] : possibleTicksAhead[zeroIndex];
+                            int bestAdjustment = possibleTicksAhead.length - 1 > zeroIndex && Math.abs(possibleTicksAhead[zeroIndex]) > Math.abs(possibleTicksA head[zeroIndex + 1]) ? possibleTicksAhead[zeroIndex + 1] : possibleTicksAhead[zeroIndex];
                             ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.failure.detailed", Configs.villagerAdjustmentTicks * 50, Arrays.toString(possibleTicksAhead), bestAdjustment).withStyle(ChatFormatting.RED), 100);
                             player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
                             Configs.villagerAdjustmentTicks -= bestAdjustment;
