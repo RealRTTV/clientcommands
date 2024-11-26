@@ -12,6 +12,7 @@ import net.minecraft.network.protocol.game.ClientboundAddExperienceOrbPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -88,9 +89,9 @@ public class VillagerCracker {
         VillagerCracker.clockPos = pos;
     }
 
-    public static void onSoundEventPlayed(ClientboundSoundPacket packet) {
+    public static void onSoundEventPlayed(ClientboundSoundPacket packet, Vec3 pos) {
         Villager targetVillager = getVillager();
-        if (targetVillager == null || getClockPos() == null) {
+        if (targetVillager == null || getClockPos() == null || pos.distanceToSqr(targetVillager.position()) <= 0.1f) {
             return;
         }
 

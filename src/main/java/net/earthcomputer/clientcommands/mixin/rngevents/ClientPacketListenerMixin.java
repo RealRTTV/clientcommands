@@ -37,8 +37,8 @@ public abstract class ClientPacketListenerMixin {
     @Inject(method = "handleSoundEvent", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/util/thread/BlockableEventLoop;)V"))
     private void onHandleSoundEvent(ClientboundSoundPacket packet, CallbackInfo ci) {
         Villager targetVillager = VillagerCracker.getVillager();
-        if (targetVillager != null && new Vec3(packet.getX(), packet.getY(), packet.getZ()).distanceToSqr(targetVillager.position()) <= 0.1f) {
-            VillagerCracker.onSoundEventPlayed(packet);
+        if (targetVillager != null) {
+            VillagerCracker.onSoundEventPlayed(packet, new Vec3(packet.getX(), packet.getY(), packet.getZ()));
         }
     }
 
