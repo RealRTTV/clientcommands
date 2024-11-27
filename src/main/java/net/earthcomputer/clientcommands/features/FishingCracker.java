@@ -558,7 +558,7 @@ public class FishingCracker {
             }
             combinedMedianEM.data.add(sample);
 
-            combinedMedianEM.update(serverMspt, expectedCatches.length / 2, expectedCatches.length / 2);
+            combinedMedianEM.update(serverMspt, expectedCatches.length);
             magicMillisecondsCorrection = (int) Math.round(combinedMedianEM.getResult());
         }
     }

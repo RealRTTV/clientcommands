@@ -1,27 +1,46 @@
 package net.earthcomputer.clientcommands.features;
 
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import net.earthcomputer.clientcommands.command.ClientCommandHelper;
+import net.earthcomputer.clientcommands.command.PingCommand;
 import net.earthcomputer.clientcommands.command.VillagerCommand;
 import net.earthcomputer.clientcommands.event.ClientConnectionEvents;
 import net.earthcomputer.clientcommands.event.MoreClientEvents;
-import net.earthcomputer.clientcommands.interfaces.IVillager;
+import net.earthcomputer.clientcommands.util.CUtil;
 import net.earthcomputer.clientcommands.util.CombinedMedianEM;
+import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundAddExperienceOrbPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.trading.ItemCost;
+import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.phys.Vec3;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 public class VillagerCracker {
     // This value was computed by brute forcing all seeds
@@ -31,11 +50,13 @@ public class VillagerCracker {
     private static UUID villagerUuid = null;
     @Nullable
     private static WeakReference<Villager> cachedVillager = null;
+    public static final VillagerRngSimulator simulator = new VillagerRngSimulator(null);
     @Nullable
     private static GlobalPos clockPos = null;
     private static boolean isNewClock;
+    public static final List<Goal> goals = new ArrayList<>();
     @Nullable
-    public static VillagerCommand.Offer targetOffer = null;
+    public static Offer targetOffer = null;
     public static VillagerRngSimulator.SurroundingOffers surroundingOffers = null;
     private static int clockTicksSinceLastTimeSync = 0;
     private static long lastClockRateWarning = 0;
@@ -49,29 +70,31 @@ public class VillagerCracker {
     public static final CombinedMedianEM combinedMedianEM = new CombinedMedianEM();
 
     static {
-        ClientConnectionEvents.DISCONNECT.register(VillagerCracker::stopRunning);
+        ClientConnectionEvents.DISCONNECT.register(VillagerCracker::onDisconnect);
         MoreClientEvents.TIME_SYNC.register(packet -> onTimeSync());
     }
 
     @Nullable
     public static Villager getVillager() {
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level == null) {
+            return null;
+        }
+
         if (villagerUuid == null) {
             cachedVillager = null;
             return null;
         }
         if (cachedVillager != null) {
             Villager villager = cachedVillager.get();
-            if (villager != null && !villager.isRemoved()) {
+            if (villager != null && !villager.isRemoved() && villager.level() == level) {
                 return villager;
             }
         }
-        ClientLevel level = Minecraft.getInstance().level;
-        if (level != null) {
-            for (Entity entity : level.entitiesForRendering()) {
-                if (villagerUuid.equals(entity.getUUID()) && entity instanceof Villager villager) {
-                    cachedVillager = new WeakReference<>(villager);
-                    return villager;
-                }
+        for (Entity entity : level.entitiesForRendering()) {
+            if (villagerUuid.equals(entity.getUUID()) && entity instanceof Villager villager) {
+                cachedVillager = new WeakReference<>(villager);
+                return villager;
             }
         }
         return null;
@@ -85,7 +108,7 @@ public class VillagerCracker {
     public static void setTargetVillager(@Nullable Villager villager) {
         Villager oldVillager = getVillager();
         if (oldVillager != null) {
-            ((IVillager) oldVillager).clientcommands_getVillagerRngSimulator().reset();
+            simulator.reset();
         }
 
         if (clockPos == null) {
@@ -117,13 +140,14 @@ public class VillagerCracker {
 
         SoundEvent soundEvent = packet.getSound().value();
         if (soundEvent == SoundEvents.VILLAGER_AMBIENT || soundEvent == SoundEvents.VILLAGER_TRADE) {
-            ((IVillager) targetVillager).clientcommands_onAmbientSoundPlayed(packet.getPitch());
+            simulator.onAmbientSoundPlayed(packet.getPitch());
         } else if (soundEvent == SoundEvents.VILLAGER_NO) {
-            ((IVillager) targetVillager).clientcommands_onNoSoundPlayed(packet.getPitch());
+            VillagerProfession profession = targetVillager.getVillagerData().getProfession();
+            simulator.onNoSoundPlayed(packet.getPitch(), profession != VillagerProfession.NONE && profession != VillagerProfession.NITWIT);
         } else if (soundEvent == SoundEvents.VILLAGER_YES) {
-            ((IVillager) targetVillager).clientcommands_onYesSoundPlayed(packet.getPitch());
+            simulator.onYesSoundPlayed(packet.getPitch());
         } else if (soundEvent == SoundEvents.GENERIC_SPLASH) {
-            ((IVillager) targetVillager).clientcommands_onSplashSoundPlayed(packet.getPitch());
+            simulator.onSplashSoundPlayed(packet.getPitch());
         }
     }
 
@@ -133,7 +157,7 @@ public class VillagerCracker {
             return;
         }
 
-        ((IVillager) targetVillager).clientcommands_onXpOrbSpawned(packet.getValue());
+        simulator.onXpOrbSpawned(packet.getValue());
     }
 
     private static void onTimeSync() {
@@ -164,7 +188,132 @@ public class VillagerCracker {
             return;
         }
 
-        ((IVillager) targetVillager).clientcommands_onServerTick();
+        simulator.simulateTick();
+        if (isRunning()) {
+            simulator.updateProgressBar();
+        }
+
+        if (isRunning() && !hasClickedVillager) {
+            int millisecondsUntilInteract = simulator.getTicksRemaining() * serverMspt - PingCommand.getLocalPing() + magicMillisecondCorrection;
+            if (millisecondsUntilInteract < 200) {
+                LocalPlayer oldPlayer = Minecraft.getInstance().player;
+                assert oldPlayer != null;
+                CUtil.sendAtPreciseTime(
+                    System.nanoTime() + millisecondsUntilInteract * 1_000_000L,
+                    ServerboundInteractPacket.createInteractionPacket(targetVillager, false, InteractionHand.MAIN_HAND),
+                    () -> true,
+                    () -> {
+                        LocalPlayer player = Minecraft.getInstance().player;
+                        if (player == oldPlayer) {
+                            player.swing(InteractionHand.MAIN_HAND);
+                        }
+                    }
+                );
+                simulator.reset();
+                hasClickedVillager = true;
+            }
+        }
+    }
+
+    private static void onDisconnect() {
+        if (Relogger.isRelogging) {
+            UUID prevVillagerUuid = villagerUuid;
+            GlobalPos prevClockPos = clockPos;
+            Relogger.relogSuccessTasks.add(() -> {
+                villagerUuid = prevVillagerUuid;
+                setClockPos(prevClockPos);
+            });
+        }
+
+        clockPos = null;
+        villagerUuid = null;
+        VillagerCracker.stopRunning();
+    }
+
+    private static int[] possibleTicksAhead(Offer[] actualOffers, VillagerRngSimulator.SurroundingOffers surroundingOffers) {
+        IntList ticksAhead = new IntArrayList();
+
+        for (int i = 0; i < surroundingOffers.before().size(); i++) {
+            Offer[] offers = surroundingOffers.before().get(i);
+            if (Arrays.equals(offers, actualOffers)) {
+                // we need to adjust by 1 to get it to not be 0 for the last value in `beforeOffers`
+                ticksAhead.add((surroundingOffers.before().size() - 1 - i) + 1);
+            }
+        }
+
+        if (Arrays.equals(surroundingOffers.middle(), actualOffers)) {
+            ticksAhead.add(0);
+        }
+
+        for (int i = 0; i < surroundingOffers.after().size(); i++) {
+            Offer[] offers = surroundingOffers.after().get(i);
+            if (Arrays.equals(offers, actualOffers)) {
+                // we need to adjust by 1 to get it to not be 0 for the first value in `afterOffers`
+                ticksAhead.add(-(i + 1));
+            }
+        }
+
+        int[] result = ticksAhead.toIntArray();
+        ArrayUtils.reverse(result);
+        return result;
+    }
+
+    public static void onGuiOpened(List<Offer> actualOffersList) {
+        final LocalPlayer player = Minecraft.getInstance().player;
+        assert player != null;
+
+        Villager villager = getVillager();
+        if (villager == null) {
+            return;
+        }
+
+        if (player.distanceTo(villager) > 2.0) {
+            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.distance").withStyle(ChatFormatting.RED), 100);
+            simulator.reset();
+            stopRunning();
+            return;
+        }
+
+        if (VillagerCracker.isRunning()) {
+            int[] possibleTicksAhead = possibleTicksAhead(actualOffersList.toArray(Offer[]::new), VillagerCracker.surroundingOffers);
+            // chop possible ticks ahead into a limited reasonable range
+            final int consideredTickRange = 21;
+            int lowerIndex = Arrays.binarySearch(possibleTicksAhead, -consideredTickRange / 2);
+            if (lowerIndex < 0) {
+                lowerIndex = -lowerIndex - 1;
+            }
+            int upperIndex = Arrays.binarySearch(possibleTicksAhead, consideredTickRange / 2);
+            if (upperIndex < 0) {
+                upperIndex = -upperIndex - 2;
+            }
+            possibleTicksAhead = Arrays.copyOfRange(possibleTicksAhead, lowerIndex, upperIndex + 1);
+
+            int prevCorrection = VillagerCracker.magicMillisecondCorrection;
+            if (possibleTicksAhead.length > 0) {
+                if (VillagerCracker.combinedMedianEM.data.size() >= 10) {
+                    VillagerCracker.combinedMedianEM.data.removeFirst();
+                }
+                DoubleList possibleMillisecondsAhead = new DoubleArrayList(possibleTicksAhead.length);
+                for (int ticksAhead : possibleTicksAhead) {
+                    possibleMillisecondsAhead.add(ticksAhead * VillagerCracker.serverMspt + VillagerCracker.magicMillisecondCorrection);
+                }
+                VillagerCracker.combinedMedianEM.data.add(possibleMillisecondsAhead);
+                VillagerCracker.maxTicksBefore = Math.max(VillagerCracker.maxTicksBefore, -possibleTicksAhead[0]);
+                VillagerCracker.maxTicksAfter = Math.max(VillagerCracker.maxTicksAfter, possibleTicksAhead[possibleTicksAhead.length - 1]);
+                VillagerCracker.combinedMedianEM.update(VillagerCracker.serverMspt, consideredTickRange);
+                VillagerCracker.magicMillisecondCorrection = (int) Math.round(VillagerCracker.combinedMedianEM.getResult());
+            }
+
+            if (actualOffersList.contains(VillagerCracker.targetOffer)) {
+                ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.success", prevCorrection).withStyle(ChatFormatting.GREEN));
+                player.playNotifySound(SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 1.0f, 2.0f);
+            } else {
+                ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.failure", prevCorrection, VillagerCracker.magicMillisecondCorrection).withStyle(ChatFormatting.RED));
+                player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
+            }
+
+            stopRunning();
+        }
     }
 
     public static boolean isRunning() {
@@ -173,5 +322,47 @@ public class VillagerCracker {
 
     public static void stopRunning() {
         targetOffer = null;
+    }
+
+    public record Goal(String firstString, Predicate<ItemStack> first, @Nullable String secondString, @Nullable Predicate<ItemStack> second, String resultString, Predicate<ItemStack> result) {
+        public boolean matches(Offer offer) {
+            return first.test(offer.first)
+                && ((second == null && offer.second == null) || offer.second != null && second != null && second.test(offer.second))
+                && result.test(offer.result);
+        }
+
+        @Override
+        public String toString() {
+            if (secondString == null) {
+                return String.format("%s = %s", firstString, resultString);
+            } else {
+                return String.format("%s + %s = %s", firstString, secondString, resultString);
+            }
+        }
+    }
+
+    public record Offer(ItemStack first, @Nullable ItemStack second, ItemStack result) {
+        public Offer(MerchantOffer offer) {
+            this(offer.getBaseCostA(), offer.getItemCostB().map(ItemCost::itemStack).orElse(null), offer.getResult());
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof Offer(ItemStack offerFirst, ItemStack offerSecond, ItemStack offerResult))) {
+                return false;
+            }
+            return ItemStack.isSameItemSameComponents(this.first, offerFirst) && this.first.getCount() == offerFirst.getCount()
+                && (this.second == offerSecond || this.second != null && offerSecond != null && ItemStack.isSameItemSameComponents(this.second, offerSecond) && this.second.getCount() == offerSecond.getCount())
+                && ItemStack.isSameItemSameComponents(this.result, offerResult) && this.result.getCount() == offerResult.getCount();
+        }
+
+        @Override
+        public String toString() {
+            if (second == null) {
+                return String.format("%s = %s", VillagerCommand.displayText(first, false), VillagerCommand.displayText(result, false));
+            } else {
+                return String.format("%s + %s = %s", VillagerCommand.displayText(first, false), VillagerCommand.displayText(second, false), VillagerCommand.displayText(result, false));
+            }
+        }
     }
 }

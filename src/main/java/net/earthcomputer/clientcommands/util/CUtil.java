@@ -8,6 +8,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
+import net.minecraft.advancements.critereon.MinMaxBounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.Holder;
@@ -65,6 +66,14 @@ public final class CUtil {
             right.accept(r);
             return null;
         });
+    }
+
+    public static String boundsToString(MinMaxBounds<?> bounds) {
+        StringBuilder sb = new StringBuilder();
+        bounds.min().ifPresent(sb::append);
+        sb.append("..");
+        bounds.max().ifPresent(sb::append);
+        return sb.toString();
     }
 
     /** @noinspection OptionalIsPresent - no boxing! */

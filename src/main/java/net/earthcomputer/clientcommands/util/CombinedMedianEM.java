@@ -34,13 +34,13 @@ public final class CombinedMedianEM {
     private double mu = 0.0;
     private double sigma = 500;
 
-    public void update(int mspt, int maxTicksBefore, int maxTicksAfter) {
+    public void update(int mspt, int consideredTickRange) {
         width = mspt;
 
         // width of time window considered
         // all of the data points for all samples are within this window
-        int beginTime = Mth.floor(mu + 0.5) - width / 2 - maxTicksBefore * width;
-        int endTime = Mth.floor(mu + 0.5) + width / 2 + maxTicksAfter * width;
+        int beginTime = Mth.floor(mu + 0.5) - width / 2 - (consideredTickRange / 2) * width;
+        int endTime = Mth.floor(mu + 0.5) + width / 2 + (consideredTickRange / 2) * width;
 
         double[] dropRate = new double[data.size()];
         Arrays.setAll(dropRate, i -> (double) data.get(i).size() * width / (endTime - beginTime));

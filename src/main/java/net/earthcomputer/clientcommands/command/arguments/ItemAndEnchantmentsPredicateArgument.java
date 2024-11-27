@@ -9,7 +9,6 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.earthcomputer.clientcommands.command.VillagerCommand;
 import net.earthcomputer.clientcommands.util.MultiVersionCompat;
 import net.minecraft.advancements.critereon.MinMaxBounds;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -40,8 +39,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAndEnchantmentsPredicateArgument.ItemAndEnchantmentsPredicate> {
@@ -131,7 +128,7 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
             return true;
         };
 
-        return new ItemAndEnchantmentsPredicate(parser.item, predicate, parser.with, parser.without, parser.exact, parser.ordered);
+        return new ItemAndEnchantmentsPredicate(parser.item, predicate);
     }
 
     @Override
@@ -157,40 +154,17 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
         return EXAMPLES;
     }
 
-    public record ItemAndEnchantmentsPredicate(Item item, Predicate<List<EnchantmentInstance>> predicate, List<EnchantmentInstancePredicate> with, List<EnchantmentInstancePredicate> without, boolean exact, boolean ordered) implements Predicate<ItemStack> {
+    public record ItemAndEnchantmentsPredicate(Item item, Predicate<List<EnchantmentInstance>> predicate) implements Predicate<ItemStack> {
         @Override
         public boolean test(ItemStack stack) {
             if (item != stack.getItem() && (item != Items.BOOK || stack.getItem() != Items.ENCHANTED_BOOK)) {
                 return false;
             }
-            List<EnchantmentInstance> enchantments = Stream.concat(stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).entrySet().stream(), stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY).entrySet().stream())
-                .map(entry -> new EnchantmentInstance(entry.getKey(), entry.getIntValue()))
-                .toList();
+            List<EnchantmentInstance> enchantments = Stream.concat(
+                stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).entrySet().stream(),
+                stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY).entrySet().stream()
+            ).map(entry -> new EnchantmentInstance(entry.getKey(), entry.getIntValue())).toList();
             return predicate.test(enchantments);
-        }
-
-        @Override
-        public String toString() {
-            String itemName = item.getName(new ItemStack(item)).getString();
-
-            StringBuilder flagsBuilder = new StringBuilder();
-            if (exact) {
-                flagsBuilder.append("Exactly");
-            }
-            if (ordered) {
-                flagsBuilder.append("Ordered");
-            }
-            String flags = flagsBuilder.isEmpty() ? "" : " [" + flagsBuilder + ')';
-
-            String enchantments = Stream.concat(
-                with.stream().filter(enchantment -> enchantment.enchantment().unwrapKey().isPresent()).map(EnchantmentInstancePredicate::toString),
-                without.stream().filter(enchantment -> enchantment.enchantment().unwrapKey().isPresent()).map(enchantment -> "!" + enchantment)
-            ).collect(Collectors.joining(", "));
-            if (!enchantments.isEmpty()) {
-                enchantments = '(' + enchantments + ')';
-            }
-
-            return String.format("%s%s %s", itemName, flags, enchantments);
         }
     }
 
@@ -485,16 +459,10 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
         }
     }
 
-    public record EnchantmentInstancePredicate(Holder<Enchantment> enchantment, MinMaxBounds.Ints level) implements Predicate<EnchantmentInstance> {
+    private record EnchantmentInstancePredicate(Holder<Enchantment> enchantment, MinMaxBounds.Ints level) implements Predicate<EnchantmentInstance> {
         @Override
         public boolean test(EnchantmentInstance enchInstance) {
             return enchantment.equals(enchInstance.enchantment) && level.matches(enchInstance.level);
-        }
-
-        @Override
-        public String toString() {
-            String quantity = VillagerCommand.displayRange(enchantment.value().getMaxLevel(), level);
-            return Component.translatable(enchantment.unwrapKey().get().location().toLanguageKey("enchantment")).getString() + " " + (quantity == null || quantity.isEmpty() ? "*" : quantity);
         }
     }
 }

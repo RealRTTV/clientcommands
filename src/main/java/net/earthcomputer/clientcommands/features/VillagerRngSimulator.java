@@ -6,23 +6,14 @@ import com.seedfinding.latticg.math.component.BigVector;
 import com.seedfinding.latticg.math.lattice.enumerate.EnumerateRt;
 import com.seedfinding.latticg.math.optimize.Optimize;
 import com.seedfinding.mcseed.rand.JRand;
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-import it.unimi.dsi.fastutil.doubles.DoubleList;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import net.earthcomputer.clientcommands.command.ClientCommandHelper;
-import net.earthcomputer.clientcommands.command.VillagerCommand;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
@@ -31,12 +22,13 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerTrades;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
-import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.LongStream;
 
@@ -63,7 +55,7 @@ public class VillagerRngSimulator {
             CompoundTag root = NbtIo.read(new DataInputStream(Objects.requireNonNull(VillagerRngSimulator.class.getResourceAsStream("/villager_lattice_data.nbt"))));
             ListTag lattices = root.getList("lattices", Tag.TAG_LONG_ARRAY);
             LATTICES = new BigMatrix[lattices.size()];
-            ListTag lattice_inverses = root.getList("lattice_inverses", Tag.TAG_LONG_ARRAY);
+            ListTag latticeInverses = root.getList("lattice_inverses", Tag.TAG_LONG_ARRAY);
             INVERSE_LATTICES = new BigMatrix[lattices.size()];
             ListTag offsets = root.getList("offsets", Tag.TAG_LONG_ARRAY);
             OFFSETS = new BigVector[offsets.size()];
@@ -81,8 +73,8 @@ public class VillagerRngSimulator {
                 matrix.set(2, 2, new BigFraction(lattice[8]));
                 LATTICES[i] = matrix;
             }
-            for (int i = 0; i < lattice_inverses.size(); i++) {
-                long[] lattice_inverse = lattice_inverses.getLongArray(i);
+            for (int i = 0; i < latticeInverses.size(); i++) {
+                long[] lattice_inverse = latticeInverses.getLongArray(i);
                 BigMatrix matrix = new BigMatrix(3, 3);
                 matrix.set(0, 0, new BigFraction(lattice_inverse[0], 1L << 48));
                 matrix.set(0, 1, new BigFraction(lattice_inverse[1], 1L << 48));
@@ -132,11 +124,6 @@ public class VillagerRngSimulator {
         simulateServerAiStep();
 
         tickCount++;
-
-        if (totalTicksInBruteForce > 0) {
-            // TODO: extract outside of simulateTick
-            updateProgressBar();
-        }
     }
 
     private void untick() {
@@ -170,7 +157,7 @@ public class VillagerRngSimulator {
     }
 
     @Nullable
-    public VillagerCommand.Offer anyOffersMatch(VillagerTrades.ItemListing[] listings, Entity trader, Predicate<VillagerCommand.Offer> predicate) {
+    public VillagerCracker.Offer anyOffersMatch(VillagerTrades.ItemListing[] listings, Entity trader, Predicate<VillagerCracker.Offer> predicate) {
         if (!getCrackedState().isCracked()) {
             return null;
         }
@@ -182,7 +169,7 @@ public class VillagerRngSimulator {
             VillagerTrades.ItemListing listing = newListings.remove(rand.nextInt(newListings.size()));
             MerchantOffer offer = listing.getOffer(trader, rand);
             if (offer != null) {
-                VillagerCommand.Offer x = new VillagerCommand.Offer(offer);
+                VillagerCracker.Offer x = new VillagerCracker.Offer(offer);
                 if (predicate.test(x)) {
                     return x;
                 } else {
@@ -194,12 +181,12 @@ public class VillagerRngSimulator {
     }
 
     @Nullable
-    public VillagerCommand.Offer[] generateOffers(VillagerTrades.ItemListing[] listings, Entity trader) {
+    public VillagerCracker.Offer[] generateOffers(VillagerTrades.ItemListing[] listings, Entity trader) {
         if (!getCrackedState().isCracked()) {
             return null;
         }
 
-        VillagerCommand.Offer[] offers = new VillagerCommand.Offer[Math.min(listings.length, 2)];
+        VillagerCracker.Offer[] offers = new VillagerCracker.Offer[Math.min(listings.length, 2)];
 
         RandomSource rand = new LegacyRandomSource(random.getSeed() ^ 0x5deece66dL);
         ArrayList<VillagerTrades.ItemListing> newListings = new ArrayList<>(List.of(listings));
@@ -208,7 +195,7 @@ public class VillagerRngSimulator {
             VillagerTrades.ItemListing listing = newListings.remove(rand.nextInt(newListings.size()));
             MerchantOffer offer = listing.getOffer(trader, rand);
             if (offer != null) {
-                offers[i] = new VillagerCommand.Offer(offer);
+                offers[i] = new VillagerCracker.Offer(offer);
             }
         }
 
@@ -389,126 +376,60 @@ public class VillagerRngSimulator {
     }
 
     @Nullable
-    public BruteForceResult bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxTicks, Predicate<VillagerCommand.Offer> predicate) {
+    public BruteForceResult bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxTicks, Predicate<VillagerCracker.Offer> predicate) {
         Villager targetVillager = VillagerCracker.getVillager();
         if (targetVillager != null && getCrackedState().isCracked()) {
-            VillagerRngSimulator rng = this.copy();
+            VillagerRngSimulator branchedSimulator = this.copy();
             int ticksPassed = 0;
 
             for (int i = 0; i < minTicks; i++) {
-                rng.simulateTick();
+                branchedSimulator.simulateTick();
                 ticksPassed++;
             }
 
             while (ticksPassed < maxTicks) {
-                VillagerRngSimulator randomBranch = rng.copy();
-                randomBranch.simulateTick();
+                VillagerRngSimulator offerSimulator = branchedSimulator.copy();
+                offerSimulator.simulateTick();
                 ticksPassed++;
-                VillagerCommand.Offer offer = randomBranch.anyOffersMatch(listings, targetVillager, predicate);
+                VillagerCracker.Offer offer = offerSimulator.anyOffersMatch(listings, targetVillager, predicate);
                 if (offer != null) {
                     // we do the calls before this ticks processing so that since with 0ms ping, the server reads it next tick
                     return new BruteForceResult(ticksPassed, offer);
                 }
-                rng.simulateTick();
+                branchedSimulator.simulateTick();
             }
         }
 
         return null;
     }
 
+    @Nullable
     public SurroundingOffers generateSurroundingOffers(VillagerTrades.ItemListing[] listings, int centerTicks, int radius) {
         Villager targetVillager = VillagerCracker.getVillager();
 
         if (targetVillager == null || !getCrackedState().isCracked()) {
-            return new SurroundingOffers(List.of(), List.of());
+            return null;
         }
 
-        List<VillagerCommand.Offer[]> before = new ArrayList<>(radius);
-        List<VillagerCommand.Offer[]> after = new ArrayList<>(radius);
+        List<VillagerCracker.Offer[]> before = new ArrayList<>(radius);
+        List<VillagerCracker.Offer[]> after = new ArrayList<>(radius);
 
-        VillagerRngSimulator rng = this.copy();
+        VillagerRngSimulator branchedSimulator = this.copy();
         for (int i = 0; i < Math.max(0, centerTicks - radius); i++) {
-            rng.simulateTick();
+            branchedSimulator.simulateTick();
         }
         for (int i = Math.max(0, centerTicks - radius); i < centerTicks - 1; i++) {
-            rng.simulateTick();
-            before.add(rng.generateOffers(listings, targetVillager));
+            branchedSimulator.simulateTick();
+            before.add(branchedSimulator.generateOffers(listings, targetVillager));
         }
-        rng.simulateTick(); // this would be our actual offer (at `centerTicks` ticks of advancement)
+        branchedSimulator.simulateTick();
+        VillagerCracker.Offer[] middle = branchedSimulator.generateOffers(listings, targetVillager);
         for (int i = 0; i < radius; i++) {
-            rng.simulateTick();
-            after.add(rng.generateOffers(listings, targetVillager));
+            branchedSimulator.simulateTick();
+            after.add(branchedSimulator.generateOffers(listings, targetVillager));
         }
 
-        return new SurroundingOffers(before, after);
-    }
-
-    private int[] possibleTicksAhead(VillagerCommand.Offer[] actualOffers, SurroundingOffers surroundingOffers, VillagerCommand.Offer targetOffer) {
-        IntList ticksAhead = new IntArrayList();
-
-        for (int i = 0; i < surroundingOffers.before().size(); i++) {
-            VillagerCommand.Offer[] offers = surroundingOffers.before().get(i);
-            if (Arrays.equals(offers, actualOffers)) {
-                // we need to adjust by 1 to get it to not be 0 for the last value in `beforeOffers`
-                ticksAhead.add((surroundingOffers.before().size() - 1 - i) + 1);
-            }
-        }
-
-        if (ArrayUtils.contains(actualOffers, targetOffer)) {
-            ticksAhead.add(0);
-        }
-
-        for (int i = 0; i < surroundingOffers.after().size(); i++) {
-            VillagerCommand.Offer[] offers = surroundingOffers.after().get(i);
-            if (Arrays.equals(offers, actualOffers)) {
-                // we need to adjust by 1 to get it to not be 0 for the first value in `afterOffers`
-                ticksAhead.add(-(i + 1));
-            }
-        }
-
-        return ticksAhead.toIntArray();
-    }
-
-    public void onGuiOpened(List<VillagerCommand.Offer> actualOffersList, Villager villager) {
-        final LocalPlayer player = Minecraft.getInstance().player;
-        assert player != null;
-
-        if (player.distanceTo(villager) > 2.0) {
-            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.distance").withStyle(ChatFormatting.RED), 100);
-            reset();
-            VillagerCracker.stopRunning();
-            return;
-        }
-
-        if (VillagerCracker.isRunning()) {
-            int[] possibleTicksAhead = possibleTicksAhead(actualOffersList.toArray(VillagerCommand.Offer[]::new), VillagerCracker.surroundingOffers, VillagerCracker.targetOffer);
-            int firstCorrection = VillagerCracker.magicMillisecondCorrection;
-
-            if (possibleTicksAhead.length > 0) {
-                if (VillagerCracker.combinedMedianEM.data.size() >= 10) {
-                    VillagerCracker.combinedMedianEM.data.removeFirst();
-                }
-                DoubleList possibleMillisecondsAhead = new DoubleArrayList(possibleTicksAhead.length);
-                for (int ticksAhead : possibleTicksAhead) {
-                    possibleMillisecondsAhead.add(ticksAhead * VillagerCracker.serverMspt + VillagerCracker.magicMillisecondCorrection);
-                }
-                VillagerCracker.combinedMedianEM.data.add(possibleMillisecondsAhead);
-                VillagerCracker.maxTicksBefore = Math.max(VillagerCracker.maxTicksBefore, -possibleTicksAhead[0]);
-                VillagerCracker.maxTicksAfter = Math.max(VillagerCracker.maxTicksAfter, possibleTicksAhead[possibleTicksAhead.length - 1]);
-                VillagerCracker.combinedMedianEM.update(VillagerCracker.serverMspt, VillagerCracker.maxTicksBefore, VillagerCracker.maxTicksAfter);
-                VillagerCracker.magicMillisecondCorrection = (int) Math.round(VillagerCracker.combinedMedianEM.getResult());
-            }
-
-            if (Arrays.binarySearch(possibleTicksAhead, 0) >= 0) {
-                ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.success", firstCorrection).withStyle(ChatFormatting.GREEN));
-                player.playNotifySound(SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 1.0f, 2.0f);
-            } else {
-                ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.failure", firstCorrection, VillagerCracker.magicMillisecondCorrection).withStyle(ChatFormatting.RED));
-                player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
-            }
-
-            VillagerCracker.targetOffer = null;
-        }
+        return new SurroundingOffers(before, middle, after);
     }
 
     public long[] crackSeed() {
@@ -593,9 +514,9 @@ public class VillagerRngSimulator {
         }
     }
 
-    public record BruteForceResult(int ticksPassed, VillagerCommand.Offer offer) {
+    public record BruteForceResult(int ticksPassed, VillagerCracker.Offer offer) {
     }
 
-    public record SurroundingOffers(List<VillagerCommand.Offer[]> before, List<VillagerCommand.Offer[]> after) {
+    public record SurroundingOffers(List<VillagerCracker.Offer[]> before, VillagerCracker.Offer[] middle, List<VillagerCracker.Offer[]> after) {
     }
 }

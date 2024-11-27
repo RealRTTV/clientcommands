@@ -2,23 +2,21 @@ package net.earthcomputer.clientcommands.command;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import dev.xpple.clientarguments.arguments.CRangeArgument;
 import net.earthcomputer.clientcommands.Configs;
+import net.earthcomputer.clientcommands.command.arguments.WithStringArgument;
 import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.earthcomputer.clientcommands.features.VillagerRngSimulator;
-import net.earthcomputer.clientcommands.interfaces.IVillager;
+import net.earthcomputer.clientcommands.util.CUtil;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.critereon.MinMaxBounds;
 import net.minecraft.commands.CommandBuildContext;
-import net.minecraft.commands.arguments.item.ItemParser;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.EnchantmentTags;
@@ -29,12 +27,9 @@ import net.minecraft.world.entity.npc.VillagerTrades;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.trading.ItemCost;
-import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -57,7 +52,6 @@ public class VillagerCommand {
     private static final SimpleCommandExceptionType ALREADY_RUNNING_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.alreadyRunning"));
     private static final Dynamic2CommandExceptionType INVALID_GOAL_INDEX_EXCEPTION = new Dynamic2CommandExceptionType((a, b) -> Component.translatable("commands.cvillager.removeGoal.invalidIndex", a, b));
     private static final Dynamic2CommandExceptionType ITEM_QUANTITY_OUT_OF_RANGE_EXCEPTION = new Dynamic2CommandExceptionType((a, b) -> Component.translatable("commands.cvillager.itemCountOutOfRange", a, b));
-    private static final List<Goal> goals = new ArrayList<>();
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandBuildContext context) {
         dispatcher.register(literal("cvillager")
@@ -102,21 +96,28 @@ public class VillagerCommand {
                     .executes(ctx -> setClockPos(ctx.getSource(), getBlockPos(ctx, "pos")))))
             .then(literal("reset-cracker")
                 .executes(ctx -> resetCracker()))
-            .then(literal("brute-force")
-                .executes(ctx -> bruteForce(false))
+            .then(literal("start")
+                .executes(ctx -> start(false))
                 .then(literal("first-level")
-                    .executes(ctx -> bruteForce(false)))
+                    .executes(ctx -> start(false)))
                 .then(literal("next-level")
-                    .executes(ctx -> bruteForce(true)))));
+                    .executes(ctx -> start(true)))));
     }
 
-    private static int addGoal(FabricClientCommandSource ctx, Result<? extends Predicate<ItemStack>> first, MinMaxBounds.Ints firstCount, @Nullable Result<? extends Predicate<ItemStack>> second, @Nullable MinMaxBounds.Ints secondCount, Result<? extends Predicate<ItemStack>> result, MinMaxBounds.Ints resultCount) throws CommandSyntaxException {
-        HolderLookup.Provider registries = ctx.getWorld().registryAccess();
-        String firstString = displayPredicate(first, firstCount, registries);
-        String secondString = second == null || secondCount == null ? null : displayPredicate(second, secondCount, registries);
-        String resultString = displayPredicate(result, resultCount, registries);
+    private static int addGoal(
+        FabricClientCommandSource ctx,
+        WithStringArgument.Result<? extends Predicate<ItemStack>> first,
+        MinMaxBounds.Ints firstCount,
+        @Nullable WithStringArgument.Result<? extends Predicate<ItemStack>> second,
+        @Nullable MinMaxBounds.Ints secondCount,
+        Result<? extends Predicate<ItemStack>> result,
+        MinMaxBounds.Ints resultCount
+    ) {
+        String firstString = first.string() + " " + CUtil.boundsToString(firstCount);
+        String secondString = second == null || secondCount == null ? null : second.string() + " " + CUtil.boundsToString(secondCount);
+        String resultString = result.string() + " " + CUtil.boundsToString(resultCount);
 
-        goals.add(new Goal(
+        VillagerCracker.goals.add(new VillagerCracker.Goal(
             firstString,
             item -> first.value().test(item) && firstCount.matches(item.getCount()),
 
@@ -124,23 +125,20 @@ public class VillagerCommand {
             second == null || secondCount == null ? null : item -> second.value().test(item) && secondCount.matches(item.getCount()),
 
             resultString,
-            item -> result.value().test(item) && resultCount.matches(item.getCount())));
+            item -> result.value().test(item) && resultCount.matches(item.getCount())
+        ));
 
         ctx.sendFeedback(Component.translatable("commands.cvillager.goalAdded"));
         return Command.SINGLE_SUCCESS;
     }
 
     private static int listGoals(FabricClientCommandSource source) {
-        if (goals.isEmpty()) {
+        if (VillagerCracker.goals.isEmpty()) {
             source.sendFeedback(Component.translatable("commands.cvillager.listGoals.noGoals").withStyle(style -> style.withColor(ChatFormatting.RED)));
         } else {
-            if (goals.size() == 1) {
-                source.sendFeedback(Component.translatable("commands.cvillager.listGoals.success.one"));
-            } else {
-                source.sendFeedback(Component.translatable("commands.cvillager.listGoals.success", goals.size() + 1));
-            }
-            for (int i = 0; i < goals.size(); i++) {
-                Goal goal = goals.get(i);
+            source.sendFeedback(Component.translatable("commands.cvillager.listGoals.success", VillagerCracker.goals.size()));
+            for (int i = 0; i < VillagerCracker.goals.size(); i++) {
+                VillagerCracker.Goal goal = VillagerCracker.goals.get(i);
                 source.sendFeedback(Component.literal((i + 1) + ": " + goal.toString()));
             }
         }
@@ -149,11 +147,11 @@ public class VillagerCommand {
 
     private static int removeGoal(FabricClientCommandSource source, int index) throws CommandSyntaxException {
         index = index - 1;
-        if (index < goals.size()) {
-            Goal goal = goals.remove(index);
+        if (index < VillagerCracker.goals.size()) {
+            VillagerCracker.Goal goal = VillagerCracker.goals.remove(index);
             source.sendFeedback(Component.translatable("commands.cvillager.removeGoal.success", goal.toString()));
         } else {
-            throw INVALID_GOAL_INDEX_EXCEPTION.create(index + 1, goals.size());
+            throw INVALID_GOAL_INDEX_EXCEPTION.create(index + 1, VillagerCracker.goals.size());
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -194,23 +192,20 @@ public class VillagerCommand {
     }
 
     private static int resetCracker() {
-        Villager targetVillager = VillagerCracker.getVillager();
-        if (targetVillager instanceof IVillager iVillager) {
-            iVillager.clientcommands_getVillagerRngSimulator().reset();
-            ClientCommandHelper.sendFeedback("commands.cvillager.resetCracker");
-        }
+        VillagerCracker.simulator.reset();
+        ClientCommandHelper.sendFeedback("commands.cvillager.resetCracker");
 
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int bruteForce(boolean levelUp) throws CommandSyntaxException {
+    private static int start(boolean levelUp) throws CommandSyntaxException {
         Villager targetVillager = VillagerCracker.getVillager();
 
-        if (goals.isEmpty()) {
+        if (VillagerCracker.goals.isEmpty()) {
             throw NO_GOALS_EXCEPTION.create();
         }
 
-        if (!(targetVillager instanceof IVillager iVillager) || !iVillager.clientcommands_getVillagerRngSimulator().getCrackedState().isCracked()) {
+        if (targetVillager == null || !VillagerCracker.simulator.getCrackedState().isCracked()) {
             throw NO_CRACKED_VILLAGER_PRESENT_EXCEPTION.create();
         }
 
@@ -232,14 +227,15 @@ public class VillagerCommand {
 
         VillagerTrades.ItemListing[] listings = VillagerTrades.TRADES.get(profession).getOrDefault(crackedLevel, new VillagerTrades.ItemListing[0]);
         int adjustmentTicks = levelUp ? -40 : 0;
-        VillagerRngSimulator.BruteForceResult result = iVillager.clientcommands_getVillagerRngSimulator().bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerBruteForceSimulationTicks, offer -> VillagerCommand.goals.stream().anyMatch(goal -> goal.matches(offer)));
+        VillagerRngSimulator.BruteForceResult result = VillagerCracker.simulator.bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerBruteForceSimulationTicks, offer -> VillagerCracker.goals.stream().anyMatch(goal -> goal.matches(offer)));
         if (result == null) {
             ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.bruteForce.failed", Configs.maxVillagerBruteForceSimulationTicks).withStyle(ChatFormatting.RED), 100);
             return Command.SINGLE_SUCCESS;
         }
-        VillagerRngSimulator.SurroundingOffers surroundingOffers = iVillager.clientcommands_getVillagerRngSimulator().generateSurroundingOffers(listings, result.ticksPassed(), 1000);
+        VillagerRngSimulator.SurroundingOffers surroundingOffers = VillagerCracker.simulator.generateSurroundingOffers(listings, result.ticksPassed(), 1000);
+        assert surroundingOffers != null;
         int ticks = result.ticksPassed() + adjustmentTicks;
-        Offer offer = result.offer();
+        VillagerCracker.Offer offer = result.offer();
         String price;
         if (offer.second() == null) {
             price = displayText(offer.first(), false);
@@ -250,106 +246,9 @@ public class VillagerCommand {
         VillagerCracker.targetOffer = offer;
         VillagerCracker.surroundingOffers = surroundingOffers;
         VillagerCracker.hasClickedVillager = false;
-        iVillager.clientcommands_getVillagerRngSimulator().setTicksUntilBruteForceInteract(ticks);
+        VillagerCracker.simulator.setTicksUntilBruteForceInteract(ticks);
 
         return Command.SINGLE_SUCCESS;
-    }
-
-    public record Goal(String firstString, Predicate<ItemStack> first, @Nullable String secondString, @Nullable Predicate<ItemStack> second, String resultString, Predicate<ItemStack> result) {
-        public boolean matches(Offer offer) {
-            return first.test(offer.first)
-                && ((second == null && offer.second == null) || offer.second != null && second != null && second.test(offer.second))
-                && result.test(offer.result);
-        }
-
-        @Override
-        public String toString() {
-            if (secondString == null) {
-                return String.format("%s = %s", firstString, resultString);
-            } else {
-                return String.format("%s + %s = %s", firstString, secondString, resultString);
-            }
-        }
-    }
-
-    public record Offer(ItemStack first, @Nullable ItemStack second, ItemStack result) {
-        public Offer(MerchantOffer offer) {
-            this(offer.getBaseCostA(), offer.getItemCostB().map(ItemCost::itemStack).orElse(null), offer.getResult());
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (!(obj instanceof Offer(ItemStack offerFirst, ItemStack offerSecond, ItemStack offerResult))) {
-                return false;
-            }
-            return ItemStack.isSameItemSameComponents(this.first, offerFirst) && this.first.getCount() == offerFirst.getCount()
-                && (this.second == offerSecond || this.second != null && offerSecond != null && ItemStack.isSameItemSameComponents(this.second, offerSecond) && this.second.getCount() == offerSecond.getCount())
-                && ItemStack.isSameItemSameComponents(this.result, offerResult) && this.result.getCount() == offerResult.getCount();
-        }
-
-        @Override
-        public String toString() {
-            if (second == null) {
-                return String.format("%s = %s", displayText(first, false), displayText(result, false));
-            } else {
-                return String.format("%s + %s = %s", displayText(first, false), displayText(second, false), displayText(result, false));
-            }
-        }
-    }
-
-    private static String displayPredicate(Result<? extends Predicate<ItemStack>> item, MinMaxBounds.Ints count, HolderLookup.Provider registries) throws CommandSyntaxException {
-        String name;
-        int maxCount = 64;
-        if (item.value() instanceof ItemAndEnchantmentsPredicate itemAndEnchantmentsPredicate) {
-            name = item.value().toString();
-            maxCount = itemAndEnchantmentsPredicate.item().getDefaultMaxStackSize();
-        } else {
-            try {
-                ItemParser.ItemResult firstItemResult = new ItemParser(registries).parse(new StringReader(item.string()));
-                name = displayText(new ItemStack(firstItemResult.item(), 1, firstItemResult.components()), true);
-                maxCount = firstItemResult.item().value().getDefaultMaxStackSize();
-            } catch (CommandSyntaxException e) {
-                name = item.string();
-            }
-        }
-
-        @Nullable
-        String rangeString = displayRange(maxCount, count);
-        if (rangeString == null) {
-            throw ITEM_QUANTITY_OUT_OF_RANGE_EXCEPTION.create(count.min().map(Object::toString).orElse("") + ".." + count.max().map(Object::toString).orElse(""), maxCount);
-        }
-
-        return rangeString + " " + name;
-    }
-
-    @Nullable
-    public static String displayRange(int maxCount, MinMaxBounds.Ints range) {
-        if (range.max().isPresent() && range.max().get() > maxCount || range.min().isPresent() && range.min().get() > maxCount) {
-            return null;
-        }
-
-        if (maxCount == 1) {
-            return "";
-        }
-
-        String string = "";
-        if ((range.min().isEmpty() || range.min().get() == 1) && (range.max().isPresent() && range.max().get() == maxCount)) {
-            string = "*";
-        } else if (range.min().equals(range.max()) && range.min().isPresent()) {
-            string = range.min().get().toString();
-        } else {
-            if (range.min().isPresent()) {
-                string = string + range.min().get();
-            }
-            if (!string.equals(" ") || range.max().isPresent()) {
-                string = string + "..";
-            }
-            if (range.max().isPresent()) {
-                string = string + range.max().get();
-            }
-        }
-
-        return string;
     }
 
     public static String displayText(ItemStack stack, boolean hideCount) {
