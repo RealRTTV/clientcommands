@@ -482,27 +482,7 @@ public class VillagerRngSimulator {
 
         if (VillagerCracker.isRunning()) {
             int[] possibleTicksAhead = possibleTicksAhead(actualOffersList.toArray(VillagerCommand.Offer[]::new), VillagerCracker.surroundingOffers, VillagerCracker.targetOffer);
-            if (Arrays.binarySearch(possibleTicksAhead, 0) >= 0) {
-                ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.success", VillagerCracker.magicMillisecondCorrection).withStyle(ChatFormatting.GREEN));
-                player.playNotifySound(SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 1.0f, 2.0f);
-            } else {
-                boolean foundSuitableAdjustment = false;
-                if (VillagerCracker.surroundingOffers != null) {
-                    if (possibleTicksAhead.length > 0) {
-                        int zeroIndex = Math.max(possibleTicksAhead.length - 1, Arrays.binarySearch(possibleTicksAhead, 0));
-                        // we go less than or equal to because the default adjustment should be to wait an amount of time, rather than to decrease it, since typically people don't have negative ping
-                        int bestAdjustment = possibleTicksAhead.length - 1 > zeroIndex && Math.abs(possibleTicksAhead[zeroIndex]) <= Math.abs(possibleTicksAhead[zeroIndex + 1]) ? possibleTicksAhead[zeroIndex + 1] : possibleTicksAhead[zeroIndex];
-                        ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.failure.detailed", VillagerCracker.magicMillisecondCorrection, Arrays.toString(possibleTicksAhead), bestAdjustment).withStyle(ChatFormatting.RED));
-                        player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
-                        foundSuitableAdjustment = true;
-                    }
-                }
-
-                if (!foundSuitableAdjustment) {
-                    ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.failure", VillagerCracker.magicMillisecondCorrection).withStyle(ChatFormatting.RED));
-                    player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
-                }
-            }
+            int firstCorrection = VillagerCracker.magicMillisecondCorrection;
 
             if (possibleTicksAhead.length > 0) {
                 if (VillagerCracker.combinedMedianEM.data.size() >= 10) {
@@ -517,6 +497,14 @@ public class VillagerRngSimulator {
                 VillagerCracker.maxTicksAfter = Math.max(VillagerCracker.maxTicksAfter, possibleTicksAhead[possibleTicksAhead.length - 1]);
                 VillagerCracker.combinedMedianEM.update(VillagerCracker.serverMspt, VillagerCracker.maxTicksBefore, VillagerCracker.maxTicksAfter);
                 VillagerCracker.magicMillisecondCorrection = (int) Math.round(VillagerCracker.combinedMedianEM.getResult());
+            }
+
+            if (Arrays.binarySearch(possibleTicksAhead, 0) >= 0) {
+                ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.success", firstCorrection).withStyle(ChatFormatting.GREEN));
+                player.playNotifySound(SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 1.0f, 2.0f);
+            } else {
+                ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.failure", firstCorrection, VillagerCracker.magicMillisecondCorrection).withStyle(ChatFormatting.RED));
+                player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
             }
 
             VillagerCracker.targetOffer = null;
