@@ -1,12 +1,23 @@
 package net.earthcomputer.clientcommands.util;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.datafixers.util.Either;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.PacketEncoder;
+import net.minecraft.network.PacketListener;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -17,10 +28,15 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 public final class CUtil {
+    private static final ScheduledExecutorService PRECISE_PACKET_TIME_EXECUTOR = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setNameFormat("Clientcommands precise packet sender #%d").build());
     private static final DynamicCommandExceptionType REGEX_TOO_SLOW_EXCEPTION = new DynamicCommandExceptionType(arg -> Component.translatable("commands.client.regexTooSlow", arg));
 
     private CUtil() {
@@ -64,6 +80,47 @@ public final class CUtil {
             return 0;
         }
         return Arrays.stream(EquipmentSlot.values()).mapToInt(slot -> entity.getItemBySlot(slot).getEnchantments().getLevel(enchHolder.get())).max().orElse(0);
+    }
+
+    public static void sendAtPreciseTime(long nanoTime, Packet<?> packet, BooleanSupplier shouldStillSend, Runnable mainThreadCallback) {
+        sendAtPreciseTimeImpl(nanoTime, packet, shouldStillSend, mainThreadCallback);
+    }
+
+    private static <T extends PacketListener> void sendAtPreciseTimeImpl(long nanoTime, Packet<T> packet, BooleanSupplier shouldStillSend, Runnable mainThreadCallback) {
+        ClientPacketListener connection = Minecraft.getInstance().getConnection();
+        if (connection == null) {
+            return;
+        }
+
+        ChannelPipeline pipeline = connection.getConnection().channel.pipeline();
+        @SuppressWarnings("unchecked")
+        PacketEncoder<T> encoder = (PacketEncoder<T>) pipeline.get("encoder");
+        if (encoder == null) {
+            return;
+        }
+        ChannelHandlerContext encoderContext = pipeline.context("encoder");
+
+        // Pre-encode the packet with context that's safe to access from the main thread
+        ByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), connection.registryAccess());
+        encoder.protocolInfo.codec().encode(buf, packet);
+
+        PRECISE_PACKET_TIME_EXECUTOR.schedule(() -> {
+            while (System.nanoTime() - nanoTime < 0) {
+                if (!shouldStillSend.getAsBoolean()) {
+                    buf.release();
+                    return;
+                }
+            }
+
+            if (!shouldStillSend.getAsBoolean()) {
+                buf.release();
+                return;
+            }
+
+            encoderContext.writeAndFlush(buf);
+
+            Minecraft.getInstance().schedule(mainThreadCallback);
+        }, Math.max(0, nanoTime - System.nanoTime() - 2000000), TimeUnit.NANOSECONDS);
     }
 
     private static class FusedRegexInput implements CharSequence {

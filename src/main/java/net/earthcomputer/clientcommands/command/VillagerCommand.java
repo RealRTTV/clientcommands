@@ -6,10 +6,8 @@ import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-import com.mojang.datafixers.util.Pair;
 import dev.xpple.clientarguments.arguments.CRangeArgument;
 import net.earthcomputer.clientcommands.Configs;
-import net.earthcomputer.clientcommands.features.FishingCracker;
 import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.earthcomputer.clientcommands.features.VillagerRngSimulator;
 import net.earthcomputer.clientcommands.interfaces.IVillager;
@@ -37,7 +35,6 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -57,7 +54,7 @@ public class VillagerCommand {
     private static final SimpleCommandExceptionType NO_PROFESSION_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.noProfession"));
     private static final SimpleCommandExceptionType NOT_LEVEL_1_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.notLevel1"));
     private static final SimpleCommandExceptionType NO_GOALS_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.listGoals.noGoals"));
-    private static final SimpleCommandExceptionType ALREADY_BRUTE_FORCING_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.alreadyBruteForcing"));
+    private static final SimpleCommandExceptionType ALREADY_RUNNING_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.alreadyRunning"));
     private static final Dynamic2CommandExceptionType INVALID_GOAL_INDEX_EXCEPTION = new Dynamic2CommandExceptionType((a, b) -> Component.translatable("commands.cvillager.removeGoal.invalidIndex", a, b));
     private static final Dynamic2CommandExceptionType ITEM_QUANTITY_OUT_OF_RANGE_EXCEPTION = new Dynamic2CommandExceptionType((a, b) -> Component.translatable("commands.cvillager.itemCountOutOfRange", a, b));
     private static final List<Goal> goals = new ArrayList<>();
@@ -222,8 +219,8 @@ public class VillagerCommand {
             throw NO_PROFESSION_EXCEPTION.create();
         }
 
-        if (iVillager.clientcommands_getVillagerRngSimulator().isCracking()) {
-            throw ALREADY_BRUTE_FORCING_EXCEPTION.create();
+        if (VillagerCracker.isRunning()) {
+            throw ALREADY_RUNNING_EXCEPTION.create();
         }
 
         int currentLevel = targetVillager.getVillagerData().getLevel();
@@ -234,14 +231,14 @@ public class VillagerCommand {
         int crackedLevel = levelUp ? currentLevel + 1 : currentLevel;
 
         VillagerTrades.ItemListing[] listings = VillagerTrades.TRADES.get(profession).getOrDefault(crackedLevel, new VillagerTrades.ItemListing[0]);
-        int adjustmentTicks = 1 + (levelUp ? -40 : 0);
-        VillagerRngSimulator.BruteForceResult result = iVillager.clientcommands_getVillagerRngSimulator().bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerBruteForceSimulationCalls, offer -> VillagerCommand.goals.stream().anyMatch(goal -> goal.matches(offer)));
+        int adjustmentTicks = levelUp ? -40 : 0;
+        VillagerRngSimulator.BruteForceResult result = iVillager.clientcommands_getVillagerRngSimulator().bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerBruteForceSimulationTicks, offer -> VillagerCommand.goals.stream().anyMatch(goal -> goal.matches(offer)));
         if (result == null) {
-            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.bruteForce.failed", Configs.maxVillagerBruteForceSimulationCalls).withStyle(ChatFormatting.RED), 100);
+            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.bruteForce.failed", Configs.maxVillagerBruteForceSimulationTicks).withStyle(ChatFormatting.RED), 100);
             return Command.SINGLE_SUCCESS;
         }
-        Pair<List<Offer[]>, List<Offer[]>> surroundingOffers = iVillager.clientcommands_getVillagerRngSimulator().generateSurroundingOffers(listings, result.ticksPassed(), 1000);
-        int calls = result.callsAtInteraction() + adjustmentTicks * 2;
+        VillagerRngSimulator.SurroundingOffers surroundingOffers = iVillager.clientcommands_getVillagerRngSimulator().generateSurroundingOffers(listings, result.ticksPassed(), 1000);
+        int ticks = result.ticksPassed() + adjustmentTicks;
         Offer offer = result.offer();
         String price;
         if (offer.second() == null) {
@@ -249,10 +246,11 @@ public class VillagerCommand {
         } else {
             price = displayText(offer.first(), false) + " + " + displayText(offer.second(), false);
         }
-        ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.bruteForce.success", displayText(offer.result(), false), price, calls).withStyle(ChatFormatting.GREEN));
+        ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.bruteForce.success", displayText(offer.result(), false), price, ticks).withStyle(ChatFormatting.GREEN));
         VillagerCracker.targetOffer = offer;
         VillagerCracker.surroundingOffers = surroundingOffers;
-        iVillager.clientcommands_getVillagerRngSimulator().setCallsUntilToggleGui(calls);
+        VillagerCracker.hasClickedVillager = false;
+        iVillager.clientcommands_getVillagerRngSimulator().setTicksUntilBruteForceInteract(ticks);
 
         return Command.SINGLE_SUCCESS;
     }

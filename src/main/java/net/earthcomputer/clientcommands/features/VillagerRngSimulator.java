@@ -1,13 +1,15 @@
 package net.earthcomputer.clientcommands.features;
 
-import com.mojang.datafixers.util.Pair;
 import com.seedfinding.latticg.math.component.BigFraction;
 import com.seedfinding.latticg.math.component.BigMatrix;
 import com.seedfinding.latticg.math.component.BigVector;
 import com.seedfinding.latticg.math.lattice.enumerate.EnumerateRt;
 import com.seedfinding.latticg.math.optimize.Optimize;
 import com.seedfinding.mcseed.rand.JRand;
-import net.earthcomputer.clientcommands.Configs;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import net.earthcomputer.clientcommands.command.ClientCommandHelper;
 import net.earthcomputer.clientcommands.command.VillagerCommand;
 import net.minecraft.ChatFormatting;
@@ -29,13 +31,13 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerTrades;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 public class VillagerRngSimulator {
@@ -43,22 +45,18 @@ public class VillagerRngSimulator {
     private static final BigMatrix[] INVERSE_LATTICES;
     private static final BigVector[] OFFSETS;
 
-    @Nullable
     private JRand random;
     private long prevRandomSeed = 0;
     private int ambientSoundTime = -80;
     private int prevAmbientSoundTime = -80;
     private boolean madeSound = false;
     private int totalAmbientSounds = 0;
-    private int callsAtStartOfBruteForce = 0;
-    private int callsInBruteForce = 0;
-    private int totalCalls = 0;
-    private int prevTotalCalls = 0;
+    private int tickCount = 0;
+    private int totalTicksInBruteForce = 0;
     private float firstPitch = Float.NaN;
     private int ticksBetweenSounds = 0;
     private float secondPitch = Float.NaN;
-    @Nullable
-    private long[] seedsFromTwoPitches = null;
+    private long @Nullable [] seedsFromTwoPitches = null;
 
     static {
         try {
@@ -116,8 +114,6 @@ public class VillagerRngSimulator {
         that.prevAmbientSoundTime = this.prevAmbientSoundTime;
         that.madeSound = this.madeSound;
         that.totalAmbientSounds = this.totalAmbientSounds;
-        that.totalCalls = this.totalCalls;
-        that.prevTotalCalls = this.prevTotalCalls;
         return that;
     }
 
@@ -131,37 +127,33 @@ public class VillagerRngSimulator {
 
         prevRandomSeed = random.getSeed();
         prevAmbientSoundTime = ambientSoundTime;
-        prevTotalCalls = totalCalls;
 
         simulateBaseTick();
         simulateServerAiStep();
 
-        if (callsInBruteForce > 0) {
+        tickCount++;
+
+        if (totalTicksInBruteForce > 0) {
+            // TODO: extract outside of simulateTick
             updateProgressBar();
         }
     }
 
-    private void revertSimulatedTick() {
+    private void untick() {
         random.setSeed(prevRandomSeed, false);
         ambientSoundTime = prevAmbientSoundTime;
-        totalCalls = prevTotalCalls;
+        tickCount--;
     }
 
-    public boolean shouldInteractWithVillager() {
-        boolean shouldInteractWithVillager = totalCalls - callsAtStartOfBruteForce >= callsInBruteForce - Configs.villagerAdjustmentTicks * 2 && callsInBruteForce > 0;
-        if (shouldInteractWithVillager) {
-            reset();
-        }
-        return shouldInteractWithVillager;
+    public int getTicksRemaining() {
+        return totalTicksInBruteForce - tickCount;
     }
 
     private void simulateBaseTick() {
         // we have the server receiving ambient noise tell us if we have to do this to increment the random, this is so that our ambient sound time is synced up.
-        totalCalls += 1;
         if (random.nextInt(1000) < ambientSoundTime++ && totalAmbientSounds > 0) {
             random.nextFloat();
             random.nextFloat();
-            totalCalls += 2;
             ambientSoundTime = -80;
             madeSound = true;
         } else {
@@ -171,11 +163,10 @@ public class VillagerRngSimulator {
 
     private void simulateServerAiStep() {
         random.nextInt(100);
-        totalCalls += 1;
     }
 
     public void updateProgressBar() {
-        ClientCommandHelper.updateOverlayProgressBar(Math.min(callsInBruteForce - Configs.villagerAdjustmentTicks * 2, totalCalls - callsAtStartOfBruteForce), callsInBruteForce - Configs.villagerAdjustmentTicks * 2, 50, 60);
+        ClientCommandHelper.updateOverlayProgressBar(tickCount, totalTicksInBruteForce, 50, 60);
     }
 
     @Nullable
@@ -224,13 +215,9 @@ public class VillagerRngSimulator {
         return offers;
     }
 
-    public void setCallsUntilToggleGui(int calls) {
-        callsAtStartOfBruteForce = totalCalls;
-        callsInBruteForce = calls;
-    }
-
-    public int getTotalCalls() {
-        return totalCalls;
+    public void setTicksUntilBruteForceInteract(int ticks) {
+        tickCount = 0;
+        totalTicksInBruteForce = ticks;
     }
 
     public CrackedState getCrackedState() {
@@ -241,19 +228,13 @@ public class VillagerRngSimulator {
         return CrackedState.CRACKED;
     }
 
-    public boolean isCracking() {
-        return callsInBruteForce > 0;
-    }
-
     public void reset() {
         random = null;
         prevRandomSeed = 0;
         prevAmbientSoundTime = 0;
-        prevTotalCalls = 0;
         totalAmbientSounds = 0;
-        totalCalls = 0;
-        callsAtStartOfBruteForce = 0;
-        callsInBruteForce = 0;
+        tickCount = 0;
+        totalTicksInBruteForce = 0;
         firstPitch = Float.NaN;
         ticksBetweenSounds = 0;
         secondPitch = Float.NaN;
@@ -340,7 +321,6 @@ public class VillagerRngSimulator {
         // played both when interacting with a villager without a profession and when using the villager gui
 
         if (random != null) {
-            totalCalls += 2;
             if (fromGuiInteract) {
                 ambientSoundTime = -80;
             }
@@ -359,7 +339,6 @@ public class VillagerRngSimulator {
         // played when using the villager gui
 
         if (random != null) {
-            totalCalls += 2;
             ambientSoundTime = -80;
             float simulatedPitch = (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f;
             if (pitch != simulatedPitch) {
@@ -376,13 +355,11 @@ public class VillagerRngSimulator {
 
         if (random != null) {
             // simulateTick() was already called for this tick assuming no splash happened, so revert it and rerun it with the splash
-            revertSimulatedTick();
+            untick();
 
-            totalCalls += 2;
             float simulatedPitch = (random.nextFloat() - random.nextFloat()) * 0.4f + 1.0f;
             if (pitch == simulatedPitch) {
                 int iterations = Mth.ceil(1.0f + EntityType.VILLAGER.getDimensions().width() * 20.0f);
-                totalCalls += iterations * 10;
                 random.advance(iterations * 10L);
                 simulateTick();
 
@@ -398,7 +375,6 @@ public class VillagerRngSimulator {
         // the last received action before the next tick's clock
 
         if (random != null) {
-            totalCalls += 1;
             ambientSoundTime = -80;
             int simulatedValue = 3 + this.random.nextInt(4);
             boolean leveledUp = value > 3 + 3;
@@ -413,11 +389,10 @@ public class VillagerRngSimulator {
     }
 
     @Nullable
-    public BruteForceResult bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxCalls, Predicate<VillagerCommand.Offer> predicate) {
+    public BruteForceResult bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxTicks, Predicate<VillagerCommand.Offer> predicate) {
         Villager targetVillager = VillagerCracker.getVillager();
         if (targetVillager != null && getCrackedState().isCracked()) {
             VillagerRngSimulator rng = this.copy();
-            int startingCalls = rng.getTotalCalls();
             int ticksPassed = 0;
 
             for (int i = 0; i < minTicks; i++) {
@@ -425,14 +400,14 @@ public class VillagerRngSimulator {
                 ticksPassed++;
             }
 
-            while (rng.getTotalCalls() < maxCalls + startingCalls) {
+            while (ticksPassed < maxTicks) {
                 VillagerRngSimulator randomBranch = rng.copy();
                 randomBranch.simulateTick();
                 ticksPassed++;
                 VillagerCommand.Offer offer = randomBranch.anyOffersMatch(listings, targetVillager, predicate);
                 if (offer != null) {
                     // we do the calls before this ticks processing so that since with 0ms ping, the server reads it next tick
-                    return new BruteForceResult(rng.getTotalCalls() - startingCalls, ticksPassed, offer);
+                    return new BruteForceResult(ticksPassed, offer);
                 }
                 rng.simulateTick();
             }
@@ -441,11 +416,11 @@ public class VillagerRngSimulator {
         return null;
     }
 
-    public Pair<List<VillagerCommand.Offer[]>, List<VillagerCommand.Offer[]>> generateSurroundingOffers(VillagerTrades.ItemListing[] listings, int centerTicks, int radius) {
+    public SurroundingOffers generateSurroundingOffers(VillagerTrades.ItemListing[] listings, int centerTicks, int radius) {
         Villager targetVillager = VillagerCracker.getVillager();
 
         if (targetVillager == null || !getCrackedState().isCracked()) {
-            return Pair.of(List.of(), List.of());
+            return new SurroundingOffers(List.of(), List.of());
         }
 
         List<VillagerCommand.Offer[]> before = new ArrayList<>(radius);
@@ -465,61 +440,85 @@ public class VillagerRngSimulator {
             after.add(rng.generateOffers(listings, targetVillager));
         }
 
-        return Pair.of(before, after);
+        return new SurroundingOffers(before, after);
     }
 
-    private int[] possibleTicksAhead(VillagerCommand.Offer[] targetOffers, List<VillagerCommand.Offer[]> before, List<VillagerCommand.Offer[]> after) {
-        List<Integer> misses = new ArrayList<>();
-        for (int i = 0; i < before.size(); i++) {
-            VillagerCommand.Offer[] offers = before.get(i);
-            if (Arrays.equals(offers, targetOffers)) {
+    private int[] possibleTicksAhead(VillagerCommand.Offer[] actualOffers, SurroundingOffers surroundingOffers, VillagerCommand.Offer targetOffer) {
+        IntList ticksAhead = new IntArrayList();
+
+        for (int i = 0; i < surroundingOffers.before().size(); i++) {
+            VillagerCommand.Offer[] offers = surroundingOffers.before().get(i);
+            if (Arrays.equals(offers, actualOffers)) {
                 // we need to adjust by 1 to get it to not be 0 for the last value in `beforeOffers`
-                misses.add((before.size() - 1 - i) + 1);
+                ticksAhead.add((surroundingOffers.before().size() - 1 - i) + 1);
             }
         }
 
-        for (int i = 0; i < after.size(); i++) {
-            VillagerCommand.Offer[] offers = after.get(i);
-            if (Arrays.equals(offers, targetOffers)) {
+        if (ArrayUtils.contains(actualOffers, targetOffer)) {
+            ticksAhead.add(0);
+        }
+
+        for (int i = 0; i < surroundingOffers.after().size(); i++) {
+            VillagerCommand.Offer[] offers = surroundingOffers.after().get(i);
+            if (Arrays.equals(offers, actualOffers)) {
                 // we need to adjust by 1 to get it to not be 0 for the first value in `afterOffers`
-                misses.add(-(i + 1));
+                ticksAhead.add(-(i + 1));
             }
         }
-        return misses.stream().mapToInt(i -> i).toArray();
+
+        return ticksAhead.toIntArray();
     }
 
-    public void onGuiOpened(List<VillagerCommand.Offer> availableOffersList, Villager villager) {
+    public void onGuiOpened(List<VillagerCommand.Offer> actualOffersList, Villager villager) {
         final LocalPlayer player = Minecraft.getInstance().player;
+        assert player != null;
+
         if (player.distanceTo(villager) > 2.0) {
             ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.distance").withStyle(ChatFormatting.RED), 100);
             reset();
+            VillagerCracker.stopRunning();
             return;
         }
 
-        if (VillagerCracker.targetOffer != null) {
-            if (availableOffersList.contains(VillagerCracker.targetOffer)) {
-                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.success", Configs.villagerAdjustmentTicks * 50).withStyle(ChatFormatting.GREEN), 100);
+        if (VillagerCracker.isRunning()) {
+            int[] possibleTicksAhead = possibleTicksAhead(actualOffersList.toArray(VillagerCommand.Offer[]::new), VillagerCracker.surroundingOffers, VillagerCracker.targetOffer);
+            if (Arrays.binarySearch(possibleTicksAhead, 0) >= 0) {
+                ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.success", VillagerCracker.magicMillisecondCorrection).withStyle(ChatFormatting.GREEN));
                 player.playNotifySound(SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 1.0f, 2.0f);
             } else {
-                a: {
-                    if (VillagerCracker.surroundingOffers != null) {
-                        int[] possibleTicksAhead = possibleTicksAhead(availableOffersList.toArray(VillagerCommand.Offer[]::new), VillagerCracker.surroundingOffers.getFirst(), VillagerCracker.surroundingOffers.getSecond());
-
-                        if (possibleTicksAhead.length > 0) {
-                            int zeroIndex = Math.max(possibleTicksAhead.length - 1, Arrays.binarySearch(possibleTicksAhead, 0));
-                            // we go less than or equal to because the default adjustment should be to wait an amount of time, rather than to decrease it, since typically people don't have negative ping
-                            int bestAdjustment = possibleTicksAhead.length - 1 > zeroIndex && Math.abs(possibleTicksAhead[zeroIndex]) <= Math.abs(possibleTicksAhead[zeroIndex + 1]) ? possibleTicksAhead[zeroIndex + 1] : possibleTicksAhead[zeroIndex];
-                            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.failure.detailed", Configs.villagerAdjustmentTicks * 50, Arrays.toString(possibleTicksAhead), bestAdjustment).withStyle(ChatFormatting.RED), 100);
-                            player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
-                            Configs.villagerAdjustmentTicks -= bestAdjustment;
-                            break a;
-                        }
+                boolean foundSuitableAdjustment = false;
+                if (VillagerCracker.surroundingOffers != null) {
+                    if (possibleTicksAhead.length > 0) {
+                        int zeroIndex = Math.max(possibleTicksAhead.length - 1, Arrays.binarySearch(possibleTicksAhead, 0));
+                        // we go less than or equal to because the default adjustment should be to wait an amount of time, rather than to decrease it, since typically people don't have negative ping
+                        int bestAdjustment = possibleTicksAhead.length - 1 > zeroIndex && Math.abs(possibleTicksAhead[zeroIndex]) <= Math.abs(possibleTicksAhead[zeroIndex + 1]) ? possibleTicksAhead[zeroIndex + 1] : possibleTicksAhead[zeroIndex];
+                        ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.failure.detailed", VillagerCracker.magicMillisecondCorrection, Arrays.toString(possibleTicksAhead), bestAdjustment).withStyle(ChatFormatting.RED));
+                        player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
+                        foundSuitableAdjustment = true;
                     }
+                }
 
-                    ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.failure", Configs.villagerAdjustmentTicks * 50).withStyle(ChatFormatting.RED), 100);
+                if (!foundSuitableAdjustment) {
+                    ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.failure", VillagerCracker.magicMillisecondCorrection).withStyle(ChatFormatting.RED));
                     player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
                 }
             }
+
+            if (possibleTicksAhead.length > 0) {
+                if (VillagerCracker.combinedMedianEM.data.size() >= 10) {
+                    VillagerCracker.combinedMedianEM.data.removeFirst();
+                }
+                DoubleList possibleMillisecondsAhead = new DoubleArrayList(possibleTicksAhead.length);
+                for (int ticksAhead : possibleTicksAhead) {
+                    possibleMillisecondsAhead.add(ticksAhead * VillagerCracker.serverMspt + VillagerCracker.magicMillisecondCorrection);
+                }
+                VillagerCracker.combinedMedianEM.data.add(possibleMillisecondsAhead);
+                VillagerCracker.maxTicksBefore = Math.max(VillagerCracker.maxTicksBefore, -possibleTicksAhead[0]);
+                VillagerCracker.maxTicksAfter = Math.max(VillagerCracker.maxTicksAfter, possibleTicksAhead[possibleTicksAhead.length - 1]);
+                VillagerCracker.combinedMedianEM.update(VillagerCracker.serverMspt, VillagerCracker.maxTicksBefore, VillagerCracker.maxTicksAfter);
+                VillagerCracker.magicMillisecondCorrection = (int) Math.round(VillagerCracker.combinedMedianEM.getResult());
+            }
+
             VillagerCracker.targetOffer = null;
         }
     }
@@ -606,5 +605,9 @@ public class VillagerRngSimulator {
         }
     }
 
-    public record BruteForceResult(int callsAtInteraction, int ticksPassed, VillagerCommand.Offer offer) {}
+    public record BruteForceResult(int ticksPassed, VillagerCommand.Offer offer) {
+    }
+
+    public record SurroundingOffers(List<VillagerCommand.Offer[]> before, List<VillagerCommand.Offer[]> after) {
+    }
 }
