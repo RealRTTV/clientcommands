@@ -38,6 +38,7 @@ import static com.mojang.brigadier.arguments.IntegerArgumentType.*;
 import static dev.xpple.clientarguments.arguments.CBlockPosArgument.*;
 import static dev.xpple.clientarguments.arguments.CEntityArgument.*;
 import static dev.xpple.clientarguments.arguments.CRangeArgument.*;
+import static net.earthcomputer.clientcommands.command.ClientCommandHelper.*;
 import static net.earthcomputer.clientcommands.command.arguments.ClientItemPredicateArgument.*;
 import static net.earthcomputer.clientcommands.command.arguments.ItemAndEnchantmentsPredicateArgument.*;
 import static net.earthcomputer.clientcommands.command.arguments.WithStringArgument.*;
@@ -52,6 +53,10 @@ public class VillagerCommand {
     private static final SimpleCommandExceptionType ALREADY_RUNNING_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.alreadyRunning"));
     private static final Dynamic2CommandExceptionType INVALID_GOAL_INDEX_EXCEPTION = new Dynamic2CommandExceptionType((index, length) -> Component.translatable("commands.cvillager.removeGoal.invalidIndex", index, length));
     private static final Dynamic2CommandExceptionType ITEM_OVERSTACKED_EXCEPTION = new Dynamic2CommandExceptionType((item, stackSize) -> Component.translatable("arguments.item.overstacked", item, stackSize));
+    private static final SimpleCommandExceptionType NEED_VILLAGER_MANIPULATION_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.needVillagerManipulation")
+        .withStyle(ChatFormatting.RED)
+        .append(" ")
+        .append(getCommandTextComponent("commands.client.enable", "/cconfig clientcommands villagerManipulation set true")));
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandBuildContext context) {
         dispatcher.register(literal("cvillager")
@@ -92,8 +97,6 @@ public class VillagerCommand {
                 .executes(ctx -> getClockPos())
                 .then(argument("pos", blockPos())
                     .executes(ctx -> setClockPos(ctx.getSource(), getBlockPos(ctx, "pos")))))
-            .then(literal("reset-cracker")
-                .executes(ctx -> resetCracker()))
             .then(literal("start")
                 .executes(ctx -> start(false))
                 .then(literal("first-level")
@@ -117,6 +120,10 @@ public class VillagerCommand {
         }
         if (second != null) {
             checkStackSize(second, secondCount);
+        }
+
+        if (!Configs.getVillagerManipulation()) {
+            throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
         }
 
         String firstString = first == null ? null : first.string() + " " + CUtil.boundsToString(firstCount);
@@ -148,7 +155,11 @@ public class VillagerCommand {
         }
     }
 
-    private static int listGoals(FabricClientCommandSource source) {
+    private static int listGoals(FabricClientCommandSource source) throws CommandSyntaxException {
+        if (!Configs.getVillagerManipulation()) {
+            throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
+        }
+
         if (VillagerCracker.goals.isEmpty()) {
             source.sendFeedback(Component.translatable("commands.cvillager.listGoals.noGoals").withStyle(style -> style.withColor(ChatFormatting.RED)));
         } else {
@@ -162,6 +173,10 @@ public class VillagerCommand {
     }
 
     private static int removeGoal(FabricClientCommandSource source, int index) throws CommandSyntaxException {
+        if (!Configs.getVillagerManipulation()) {
+            throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
+        }
+
         index = index - 1;
         if (index < VillagerCracker.goals.size()) {
             VillagerCracker.Goal goal = VillagerCracker.goals.remove(index);
@@ -173,6 +188,10 @@ public class VillagerCommand {
     }
 
     private static int setVillagerTarget(@Nullable Entity target) throws CommandSyntaxException {
+        if (!Configs.getVillagerManipulation()) {
+            throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
+        }
+
         if (target instanceof Villager villager) {
             VillagerCracker.setTargetVillager(villager);
             ClientCommandHelper.sendFeedback("commands.cvillager.target.set");
@@ -186,7 +205,11 @@ public class VillagerCommand {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int getClockPos() {
+    private static int getClockPos() throws CommandSyntaxException {
+        if (!Configs.getVillagerManipulation()) {
+            throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
+        }
+
         GlobalPos pos = VillagerCracker.getClockPos();
         if (pos == null) {
             ClientCommandHelper.sendFeedback("commands.cvillager.clock.cleared");
@@ -196,7 +219,11 @@ public class VillagerCommand {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int setClockPos(FabricClientCommandSource ctx, BlockPos pos) {
+    private static int setClockPos(FabricClientCommandSource ctx, BlockPos pos) throws CommandSyntaxException {
+        if (!Configs.getVillagerManipulation()) {
+            throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
+        }
+
         ResourceKey<Level> dimension = ctx.getWorld().dimension();
         VillagerCracker.setClockPos(pos == null ? null : new GlobalPos(dimension, pos));
         if (pos == null) {
@@ -207,14 +234,11 @@ public class VillagerCommand {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int resetCracker() {
-        VillagerCracker.simulator.reset();
-        ClientCommandHelper.sendFeedback("commands.cvillager.resetCracker");
-
-        return Command.SINGLE_SUCCESS;
-    }
-
     private static int start(boolean levelUp) throws CommandSyntaxException {
+        if (!Configs.getVillagerManipulation()) {
+            throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
+        }
+
         Villager targetVillager = VillagerCracker.getVillager();
 
         if (VillagerCracker.goals.isEmpty()) {

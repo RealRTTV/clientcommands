@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import net.earthcomputer.clientcommands.Configs;
 import net.earthcomputer.clientcommands.command.ClientCommandHelper;
 import net.earthcomputer.clientcommands.command.PingCommand;
 import net.earthcomputer.clientcommands.command.VillagerCommand;
@@ -163,7 +164,7 @@ public class VillagerCracker {
     private static void onTimeSync() {
         long now = System.nanoTime();
 
-        if (getVillager() != null && clockPos != null && !isNewClock && clockTicksSinceLastTimeSync != 20) {
+        if (Configs.getVillagerManipulation() && clockPos != null && !isNewClock && clockTicksSinceLastTimeSync != 20) {
             if (now - lastClockRateWarning >= 60_000_000_000L) {
                 if (clockTicksSinceLastTimeSync < 20) {
                     ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.tooSlow"));
@@ -225,9 +226,7 @@ public class VillagerCracker {
             });
         }
 
-        clockPos = null;
-        villagerUuid = null;
-        VillagerCracker.stopRunning();
+        reset();
     }
 
     private static int[] possibleTicksAhead(Offer[] actualOffers, VillagerRngSimulator.SurroundingOffers surroundingOffers) {
@@ -314,6 +313,13 @@ public class VillagerCracker {
 
             stopRunning();
         }
+    }
+
+    public static void reset() {
+        simulator.reset();
+        clockPos = null;
+        villagerUuid = null;
+        stopRunning();
     }
 
     public static boolean isRunning() {

@@ -260,6 +260,7 @@
   "commands.cvillager.inSync": "Your villager's RNG is cracked",
   "commands.cvillager.listGoals.noGoals": "There are no villager goals",
   "commands.cvillager.listGoals.success": "There are %s villager goals:",
+  "commands.cvillager.needVillagerManipulation": "Villager manipulation is not enabled",
   "commands.cvillager.noCrackedVillagerPresent": "There was no cracked villager available to use",
   "commands.cvillager.noProfession": "The targeted villager has no profession",
   "commands.cvillager.notAVillager": "Target was not a villager",

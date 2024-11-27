@@ -6,6 +6,7 @@ import net.earthcomputer.clientcommands.features.EnchantmentCracker;
 import net.earthcomputer.clientcommands.features.FishingCracker;
 import net.earthcomputer.clientcommands.features.PlayerRandCracker;
 import net.earthcomputer.clientcommands.features.ServerBrandManager;
+import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.earthcomputer.clientcommands.util.MultiVersionCompat;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringRepresentable;
@@ -174,7 +175,21 @@ public class Configs {
     @Config
     public static int maximumPacketFieldDepth = 10;
 
-    @Config(temporary = true, setter = @Config.Setter("setMaxVillagerBruteForceSimulationTicks"))
+    @Config(setter = @Config.Setter("setVillagerManipulation"), temporary = true)
+    private static boolean villagerManipulation = false;
+    public static boolean getVillagerManipulation() {
+        return villagerManipulation;
+    }
+    public static void setVillagerManipulation(boolean villagerManipulation) {
+        Configs.villagerManipulation = villagerManipulation;
+        if (villagerManipulation) {
+            ServerBrandManager.rngWarning();
+        } else {
+            VillagerCracker.reset();
+        }
+    }
+
+    @Config(setter = @Config.Setter("setMaxVillagerBruteForceSimulationTicks"), temporary = true)
     public static int maxVillagerBruteForceSimulationTicks = 12000;
     public static void setMaxVillagerBruteForceSimulationTicks(int maxVillagerBruteForceSimulationTicks) {
         Configs.maxVillagerBruteForceSimulationTicks = Mth.clamp(maxVillagerBruteForceSimulationTicks, 0, 1_000_000);
