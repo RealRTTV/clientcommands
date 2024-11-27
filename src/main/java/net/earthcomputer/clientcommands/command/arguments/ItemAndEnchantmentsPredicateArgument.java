@@ -52,6 +52,8 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
     private Predicate<Item> itemPredicate = item -> true;
     private BiPredicate<Item, Holder<Enchantment>> enchantmentPredicate = (item, ench) -> true;
     private boolean constrainMaxLevel = false;
+    @Nullable
+    private String suffix;
 
     private ItemAndEnchantmentsPredicateArgument(HolderLookup.Provider holderLookupProvider) {
         this.enchantmentLookup = holderLookupProvider.lookupOrThrow(Registries.ENCHANTMENT);
@@ -73,6 +75,11 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
 
     public ItemAndEnchantmentsPredicateArgument constrainMaxLevel() {
         this.constrainMaxLevel = true;
+        return this;
+    }
+
+    public ItemAndEnchantmentsPredicateArgument withSuffix(String suffix) {
+        this.suffix = suffix;
         return this;
     }
 
@@ -222,6 +229,10 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
                 return false;
             }
 
+            if (option == Option.SUFFIX) {
+                return false;
+            }
+
             boolean suggest = reader.canRead();
             if (option == Option.EXACT) {
                 exact = true;
@@ -258,6 +269,7 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
             WITHOUT,
             EXACT,
             ORDERED,
+            SUFFIX,
         }
 
         @Nullable
@@ -269,7 +281,7 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
                 case "without" -> Option.WITHOUT;
                 case "exactly" -> exact ? null : Option.EXACT;
                 case "ordered" -> ordered || MultiVersionCompat.INSTANCE.getProtocolVersion() >= MultiVersionCompat.V1_21 ? null : Option.ORDERED;
-                default -> null;
+                default -> option.equals(suffix) ? Option.SUFFIX : null;
             };
         }
 
@@ -452,6 +464,9 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
                 }
                 if (!ordered && MultiVersionCompat.INSTANCE.getProtocolVersion() < MultiVersionCompat.V1_21) {
                     validOptions.add("ordered");
+                }
+                if (suffix != null) {
+                    validOptions.add(suffix);
                 }
                 SharedSuggestionProvider.suggest(validOptions, builder);
                 suggestions.add(builder);

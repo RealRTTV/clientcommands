@@ -324,16 +324,25 @@ public class VillagerCracker {
         targetOffer = null;
     }
 
-    public record Goal(String firstString, Predicate<ItemStack> first, @Nullable String secondString, @Nullable Predicate<ItemStack> second, String resultString, Predicate<ItemStack> result) {
+    public record Goal(
+        String resultString,
+        Predicate<ItemStack> result,
+        @Nullable String firstString,
+        @Nullable Predicate<ItemStack> first,
+        @Nullable String secondString,
+        @Nullable Predicate<ItemStack> second
+    ) {
         public boolean matches(Offer offer) {
-            return first.test(offer.first)
-                && ((second == null && offer.second == null) || offer.second != null && second != null && second.test(offer.second))
-                && result.test(offer.result);
+            return result.test(offer.result)
+                && (first == null || first.test(offer.first))
+                && (second == null || (offer.second != null && second.test(offer.second)));
         }
 
         @Override
         public String toString() {
-            if (secondString == null) {
+            if (firstString == null) {
+                return resultString;
+            } else if (secondString == null) {
                 return String.format("%s = %s", firstString, resultString);
             } else {
                 return String.format("%s + %s = %s", firstString, secondString, resultString);

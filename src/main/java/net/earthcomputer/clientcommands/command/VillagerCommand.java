@@ -5,8 +5,9 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-import dev.xpple.clientarguments.arguments.CRangeArgument;
 import net.earthcomputer.clientcommands.Configs;
+import net.earthcomputer.clientcommands.command.arguments.ClientItemPredicateArgument;
+import net.earthcomputer.clientcommands.command.arguments.ItemAndEnchantmentsPredicateArgument;
 import net.earthcomputer.clientcommands.command.arguments.WithStringArgument;
 import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.earthcomputer.clientcommands.features.VillagerRngSimulator;
@@ -31,14 +32,13 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.mojang.brigadier.arguments.IntegerArgumentType.*;
 import static dev.xpple.clientarguments.arguments.CBlockPosArgument.*;
 import static dev.xpple.clientarguments.arguments.CEntityArgument.*;
-import static dev.xpple.clientarguments.arguments.CItemPredicateArgument.*;
 import static dev.xpple.clientarguments.arguments.CRangeArgument.*;
+import static net.earthcomputer.clientcommands.command.arguments.ClientItemPredicateArgument.*;
 import static net.earthcomputer.clientcommands.command.arguments.ItemAndEnchantmentsPredicateArgument.*;
 import static net.earthcomputer.clientcommands.command.arguments.WithStringArgument.*;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.*;
@@ -50,37 +50,35 @@ public class VillagerCommand {
     private static final SimpleCommandExceptionType NOT_LEVEL_1_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.notLevel1"));
     private static final SimpleCommandExceptionType NO_GOALS_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.listGoals.noGoals"));
     private static final SimpleCommandExceptionType ALREADY_RUNNING_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.alreadyRunning"));
-    private static final Dynamic2CommandExceptionType INVALID_GOAL_INDEX_EXCEPTION = new Dynamic2CommandExceptionType((a, b) -> Component.translatable("commands.cvillager.removeGoal.invalidIndex", a, b));
-    private static final Dynamic2CommandExceptionType ITEM_QUANTITY_OUT_OF_RANGE_EXCEPTION = new Dynamic2CommandExceptionType((a, b) -> Component.translatable("commands.cvillager.itemCountOutOfRange", a, b));
+    private static final Dynamic2CommandExceptionType INVALID_GOAL_INDEX_EXCEPTION = new Dynamic2CommandExceptionType((index, length) -> Component.translatable("commands.cvillager.removeGoal.invalidIndex", index, length));
+    private static final Dynamic2CommandExceptionType ITEM_OVERSTACKED_EXCEPTION = new Dynamic2CommandExceptionType((item, stackSize) -> Component.translatable("arguments.item.overstacked", item, stackSize));
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandBuildContext context) {
         dispatcher.register(literal("cvillager")
-            .then(literal("add-two-item-goal")
-                .then(argument("first-item", withString(itemPredicate(context)))
-                    .then(argument("first-count", intRange())
-                        .then(argument("result-item", withString(itemPredicate(context)))
-                            .then(argument("result-count", intRange())
-                                .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "first-item", CItemStackPredicateArgument.class), CRangeArgument.Ints.getRangeArgument(ctx, "first-count"), null, null, getWithString(ctx, "result-item", CItemStackPredicateArgument.class), CRangeArgument.Ints.getRangeArgument(ctx, "result-count"))))))))
-            .then(literal("add-three-item-goal")
-                .then(argument("first-item", withString(itemPredicate(context)))
-                    .then(argument("first-count", intRange())
-                        .then(argument("second-item", withString(itemPredicate(context)))
-                            .then(argument("second-count", intRange())
-                                .then(argument("result-item", withString(itemPredicate(context)))
-                                    .then(argument("result-count", intRange())
-                                        .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "first-item", CItemStackPredicateArgument.class), CRangeArgument.Ints.getRangeArgument(ctx, "first-count"), getWithString(ctx, "second-item", CItemStackPredicateArgument.class), CRangeArgument.Ints.getRangeArgument(ctx, "second-count"), getWithString(ctx, "result-item", CItemStackPredicateArgument.class), CRangeArgument.Ints.getRangeArgument(ctx, "result-count"))))))))))
-            .then(literal("add-two-item-enchanted-goal")
-                .then(argument("first-item", withString(itemPredicate(context)))
-                    .then(argument("first-count", intRange())
-                        .then(argument("result-item", withString(itemAndEnchantmentsPredicate(context).withEnchantmentPredicate((item, enchantment) -> enchantment.is(EnchantmentTags.TRADEABLE))))
-                            .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "first-item", CItemStackPredicateArgument.class), CRangeArgument.Ints.getRangeArgument(ctx, "first-count"), null, null, getWithString(ctx, "result-item", ItemAndEnchantmentsPredicate.class), MinMaxBounds.Ints.between(1, 1)))))))
-            .then(literal("add-three-item-enchanted-goal")
-                .then(argument("first-item", withString(itemPredicate(context)))
-                    .then(argument("first-count", intRange())
-                        .then(argument("second-item", withString(itemPredicate(context)))
-                            .then(argument("second-count", intRange())
-                                .then(argument("result-item", withString(itemAndEnchantmentsPredicate(context).withEnchantmentPredicate((item, enchantment) -> enchantment.is(EnchantmentTags.TRADEABLE))))
-                                    .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "first-item", CItemStackPredicateArgument.class), CRangeArgument.Ints.getRangeArgument(ctx, "first-count"), getWithString(ctx, "second-item", CItemStackPredicateArgument.class), CRangeArgument.Ints.getRangeArgument(ctx, "second-count"), getWithString(ctx, "result-item", ItemAndEnchantmentsPredicate.class), MinMaxBounds.Ints.between(1, 1)))))))))
+            .then(literal("add-goal")
+                .then(argument("result", withString(clientItemPredicate(context)))
+                    .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ClientItemPredicateArgument.ClientItemPredicate.class), MinMaxBounds.Ints.ANY, null, MinMaxBounds.Ints.ANY, null, MinMaxBounds.Ints.ANY))
+                    .then(argument("result-count", intRange())
+                        .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "result-count"), null, MinMaxBounds.Ints.ANY, null, MinMaxBounds.Ints.ANY))
+                        .then(argument("input", withString(clientItemPredicate(context)))
+                            .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "result-count"), getWithString(ctx, "input", ClientItemPredicateArgument.ClientItemPredicate.class), MinMaxBounds.Ints.ANY, null, MinMaxBounds.Ints.ANY))
+                            .then(argument("input-count", intRange())
+                                .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "result-count"), getWithString(ctx, "input", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "input-count"), null, MinMaxBounds.Ints.ANY))
+                                .then(argument("second-input", withString(clientItemPredicate(context)))
+                                    .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "result-count"), getWithString(ctx, "input", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "input-count"), getWithString(ctx, "second-input", ClientItemPredicateArgument.ClientItemPredicate.class), MinMaxBounds.Ints.ANY))
+                                    .then(argument("second-input-count", intRange())
+                                        .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "result-count"), getWithString(ctx, "input", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "input-count"), getWithString(ctx, "second-input", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "second-input-count"))))))))))
+            .then(literal("add-enchanted-goal")
+                .then(argument("result", withString(itemAndEnchantmentsPredicate(context).withSuffix("from").withEnchantmentPredicate((item, ench) -> ench.is(EnchantmentTags.TRADEABLE))))
+                    .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ItemAndEnchantmentsPredicateArgument.ItemAndEnchantmentsPredicate.class).map(ClientItemPredicateArgument.EnchantedItemPredicate::new), MinMaxBounds.Ints.ANY, null, MinMaxBounds.Ints.ANY, null, MinMaxBounds.Ints.ANY))
+                    .then(argument("input", withString(clientItemPredicate(context)))
+                        .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ItemAndEnchantmentsPredicateArgument.ItemAndEnchantmentsPredicate.class).map(ClientItemPredicateArgument.EnchantedItemPredicate::new), MinMaxBounds.Ints.ANY, getWithString(ctx, "input", ClientItemPredicateArgument.ClientItemPredicate.class), MinMaxBounds.Ints.ANY, null, MinMaxBounds.Ints.ANY))
+                        .then(argument("input-count", intRange())
+                            .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ItemAndEnchantmentsPredicateArgument.ItemAndEnchantmentsPredicate.class).map(ClientItemPredicateArgument.EnchantedItemPredicate::new), MinMaxBounds.Ints.ANY, getWithString(ctx, "input", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "input-count"), null, MinMaxBounds.Ints.ANY))
+                            .then(argument("second-input", withString(clientItemPredicate(context)))
+                                .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ItemAndEnchantmentsPredicateArgument.ItemAndEnchantmentsPredicate.class).map(ClientItemPredicateArgument.EnchantedItemPredicate::new), MinMaxBounds.Ints.ANY, getWithString(ctx, "input", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "input-count"), getWithString(ctx, "second-input", ClientItemPredicateArgument.ClientItemPredicate.class), MinMaxBounds.Ints.ANY))
+                                .then(argument("second-input-count", intRange())
+                                    .executes(ctx -> addGoal(ctx.getSource(), getWithString(ctx, "result", ItemAndEnchantmentsPredicateArgument.ItemAndEnchantmentsPredicate.class).map(ClientItemPredicateArgument.EnchantedItemPredicate::new), MinMaxBounds.Ints.ANY, getWithString(ctx, "input", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "input-count"), getWithString(ctx, "second-input", ClientItemPredicateArgument.ClientItemPredicate.class), Ints.getRangeArgument(ctx, "second-input-count")))))))))
             .then(literal("list-goals")
                 .executes(ctx -> listGoals(ctx.getSource())))
             .then(literal("remove-goal")
@@ -106,30 +104,48 @@ public class VillagerCommand {
 
     private static int addGoal(
         FabricClientCommandSource ctx,
-        WithStringArgument.Result<? extends Predicate<ItemStack>> first,
+        Result<ClientItemPredicateArgument.ClientItemPredicate> result,
+        MinMaxBounds.Ints resultCount,
+        @Nullable WithStringArgument.Result<ClientItemPredicateArgument.ClientItemPredicate> first,
         MinMaxBounds.Ints firstCount,
-        @Nullable WithStringArgument.Result<? extends Predicate<ItemStack>> second,
-        @Nullable MinMaxBounds.Ints secondCount,
-        Result<? extends Predicate<ItemStack>> result,
-        MinMaxBounds.Ints resultCount
-    ) {
-        String firstString = first.string() + " " + CUtil.boundsToString(firstCount);
-        String secondString = second == null || secondCount == null ? null : second.string() + " " + CUtil.boundsToString(secondCount);
+        @Nullable WithStringArgument.Result<ClientItemPredicateArgument.ClientItemPredicate> second,
+        MinMaxBounds.Ints secondCount
+    ) throws CommandSyntaxException {
+        checkStackSize(result, resultCount);
+        if (first != null) {
+            checkStackSize(first, firstCount);
+        }
+        if (second != null) {
+            checkStackSize(second, secondCount);
+        }
+
+        String firstString = first == null ? null : first.string() + " " + CUtil.boundsToString(firstCount);
+        String secondString = second == null ? null : second.string() + " " + CUtil.boundsToString(secondCount);
         String resultString = result.string() + " " + CUtil.boundsToString(resultCount);
 
         VillagerCracker.goals.add(new VillagerCracker.Goal(
+            resultString,
+            item -> result.value().test(item) && resultCount.matches(item.getCount()),
+
             firstString,
-            item -> first.value().test(item) && firstCount.matches(item.getCount()),
+            first == null ? null : item -> first.value().test(item) && firstCount.matches(item.getCount()),
 
             secondString,
-            second == null || secondCount == null ? null : item -> second.value().test(item) && secondCount.matches(item.getCount()),
-
-            resultString,
-            item -> result.value().test(item) && resultCount.matches(item.getCount())
+            second == null ? null : item -> second.value().test(item) && secondCount.matches(item.getCount())
         ));
 
         ctx.sendFeedback(Component.translatable("commands.cvillager.goalAdded"));
         return Command.SINGLE_SUCCESS;
+    }
+
+    private static void checkStackSize(WithStringArgument.Result<ClientItemPredicateArgument.ClientItemPredicate> itemPredicate, MinMaxBounds.Ints count) throws CommandSyntaxException {
+        int maxCount = itemPredicate.value().getPossibleItems().stream().mapToInt(Item::getDefaultMaxStackSize).max().orElse(Item.DEFAULT_MAX_STACK_SIZE);
+        if (count.min().isPresent() && count.min().get() > maxCount) {
+            throw ITEM_OVERSTACKED_EXCEPTION.create(itemPredicate.string(), maxCount);
+        }
+        if (count.max().isPresent() && count.max().get() > maxCount) {
+            throw ITEM_OVERSTACKED_EXCEPTION.create(itemPredicate.string(), maxCount);
+        }
     }
 
     private static int listGoals(FabricClientCommandSource source) {
