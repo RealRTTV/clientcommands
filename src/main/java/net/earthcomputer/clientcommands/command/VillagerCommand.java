@@ -296,7 +296,7 @@ public class VillagerCommand {
 
             @Override
             public boolean condition() {
-                return VillagerCracker.isRunning() && VillagerCracker.simulator.getTicksRemaining() > 0;
+                return VillagerCracker.isRunning();
             }
 
             @Override
