@@ -11,6 +11,8 @@ import net.earthcomputer.clientcommands.command.arguments.ItemAndEnchantmentsPre
 import net.earthcomputer.clientcommands.command.arguments.WithStringArgument;
 import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.earthcomputer.clientcommands.features.VillagerRngSimulator;
+import net.earthcomputer.clientcommands.task.LongTask;
+import net.earthcomputer.clientcommands.task.TaskManager;
 import net.earthcomputer.clientcommands.util.CUtil;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
@@ -287,6 +289,35 @@ public class VillagerCommand {
         VillagerCracker.surroundingOffers = surroundingOffers;
         VillagerCracker.hasClickedVillager = false;
         VillagerCracker.simulator.setTicksUntilBruteForceInteract(ticks);
+        TaskManager.addTask("cvillagerBruteForce", new LongTask() {
+            @Override
+            public void initialize() {
+            }
+
+            @Override
+            public boolean condition() {
+                return VillagerCracker.isRunning() && VillagerCracker.simulator.getTicksRemaining() > 0;
+            }
+
+            @Override
+            public void increment() {
+            }
+
+            @Override
+            public void body() {
+                VillagerCracker.simulator.updateProgressBar();
+                scheduleDelay();
+            }
+
+            @Override
+            public void onCompleted() {
+                // check if `onCompleted` was cancelled
+                if (condition()) {
+                    VillagerCracker.stopRunning();
+                    ClientCommandHelper.addOverlayMessage(Component.empty(), 0);
+                }
+            }
+        });
 
         return Command.SINGLE_SUCCESS;
     }

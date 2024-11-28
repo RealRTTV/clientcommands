@@ -118,16 +118,16 @@ public class VillagerCracker {
 
         ClientLevel level = Minecraft.getInstance().level;
 
-        if (level.getDayTime() % 24000 < 12000) {
+        if (level.getDayTime() % 24000 < 12000) { // todo, double check this works
             ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));
         }
 
-        VillagerCracker.cachedVillager = new WeakReference<>(villager);
-        VillagerCracker.villagerUuid = villager == null ? null : villager.getUUID();
+        cachedVillager = new WeakReference<>(villager);
+        villagerUuid = villager == null ? null : villager.getUUID();
     }
 
     public static void setClockPos(@Nullable GlobalPos pos) {
-        VillagerCracker.clockPos = pos;
+        clockPos = pos;
         if (pos != null) {
             isNewClock = true;
         }
@@ -190,9 +190,6 @@ public class VillagerCracker {
         }
 
         simulator.simulateTick();
-        if (isRunning()) {
-            simulator.updateProgressBar();
-        }
 
         if (isRunning() && !hasClickedVillager) {
             int millisecondsUntilInteract = simulator.getTicksRemaining() * serverMspt - PingCommand.getLocalPing() + magicMillisecondCorrection;
@@ -210,7 +207,7 @@ public class VillagerCracker {
                         }
                     }
                 );
-                simulator.reset();
+                simulator.resetBruteForceState();
                 hasClickedVillager = true;
             }
         }
@@ -273,8 +270,8 @@ public class VillagerCracker {
             return;
         }
 
-        if (VillagerCracker.isRunning()) {
-            int[] possibleTicksAhead = possibleTicksAhead(actualOffersList.toArray(Offer[]::new), VillagerCracker.surroundingOffers);
+        if (isRunning()) {
+            int[] possibleTicksAhead = possibleTicksAhead(actualOffersList.toArray(Offer[]::new), surroundingOffers);
             // chop possible ticks ahead into a limited reasonable range
             final int consideredTickRange = 21;
             int lowerIndex = Arrays.binarySearch(possibleTicksAhead, -consideredTickRange / 2);
@@ -287,30 +284,32 @@ public class VillagerCracker {
             }
             possibleTicksAhead = Arrays.copyOfRange(possibleTicksAhead, lowerIndex, upperIndex + 1);
 
-            int prevCorrection = VillagerCracker.magicMillisecondCorrection;
+            int prevCorrection = magicMillisecondCorrection;
             if (possibleTicksAhead.length > 0) {
-                if (VillagerCracker.combinedMedianEM.data.size() >= 10) {
-                    VillagerCracker.combinedMedianEM.data.removeFirst();
+                if (combinedMedianEM.data.size() >= 10) {
+                    combinedMedianEM.data.removeFirst();
                 }
                 DoubleList possibleMillisecondsAhead = new DoubleArrayList(possibleTicksAhead.length);
                 for (int ticksAhead : possibleTicksAhead) {
-                    possibleMillisecondsAhead.add(ticksAhead * VillagerCracker.serverMspt + VillagerCracker.magicMillisecondCorrection);
+                    possibleMillisecondsAhead.add(ticksAhead * serverMspt + magicMillisecondCorrection);
                 }
-                VillagerCracker.combinedMedianEM.data.add(possibleMillisecondsAhead);
-                VillagerCracker.maxTicksBefore = Math.max(VillagerCracker.maxTicksBefore, -possibleTicksAhead[0]);
-                VillagerCracker.maxTicksAfter = Math.max(VillagerCracker.maxTicksAfter, possibleTicksAhead[possibleTicksAhead.length - 1]);
-                VillagerCracker.combinedMedianEM.update(VillagerCracker.serverMspt, consideredTickRange);
-                VillagerCracker.magicMillisecondCorrection = (int) Math.round(VillagerCracker.combinedMedianEM.getResult());
+                combinedMedianEM.data.add(possibleMillisecondsAhead);
+                maxTicksBefore = Math.max(maxTicksBefore, -possibleTicksAhead[0]);
+                maxTicksAfter = Math.max(maxTicksAfter, possibleTicksAhead[possibleTicksAhead.length - 1]);
+                combinedMedianEM.update(serverMspt, consideredTickRange);
+                magicMillisecondCorrection = (int) Math.round(combinedMedianEM.getResult());
             }
 
-            if (actualOffersList.contains(VillagerCracker.targetOffer)) {
+            if (actualOffersList.contains(targetOffer)) {
                 ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.success", prevCorrection).withStyle(ChatFormatting.GREEN));
                 player.playNotifySound(SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.PLAYERS, 1.0f, 2.0f);
             } else {
-                ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.failure", prevCorrection, VillagerCracker.magicMillisecondCorrection).withStyle(ChatFormatting.RED));
+                ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.failure", prevCorrection, magicMillisecondCorrection).withStyle(ChatFormatting.RED));
                 player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
             }
 
+            ClientCommandHelper.addOverlayMessage(Component.empty(), 0);
+            simulator.reset();
             stopRunning();
         }
     }

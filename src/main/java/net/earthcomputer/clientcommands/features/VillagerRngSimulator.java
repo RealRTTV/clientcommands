@@ -228,6 +228,11 @@ public class VillagerRngSimulator {
         seedsFromTwoPitches = null;
     }
 
+    public void resetBruteForceState() {
+        totalTicksInBruteForce = 0;
+        tickCount = 0;
+    }
+
     @Override
     public String toString() {
         return "VillagerRngSimulator[seed=" + (random == null ? "null" : random.getSeed()) + ']';
@@ -246,7 +251,7 @@ public class VillagerRngSimulator {
             firstPitch = pitch;
             ambientSoundTime = -80;
             if (!justReset) {
-                ClientCommandHelper.addOverlayMessage(((MutableComponent) getCrackedState().getMessage(false)).withStyle(ChatFormatting.RED), 100);
+                ClientCommandHelper.addOverlayMessage(getCrackedState().getMessage(false).withStyle(ChatFormatting.RED), 100);
             }
             return;
         }
@@ -506,7 +511,7 @@ public class VillagerRngSimulator {
             return this == CRACKED;
         }
 
-        public Component getMessage(boolean addColor) {
+        public MutableComponent getMessage(boolean addColor) {
             return switch (this) {
                 case UNCRACKED -> Component.translatable("commands.cvillager.partiallyCracked").withStyle(addColor ? ChatFormatting.RED : ChatFormatting.RESET);
                 case CRACKED -> Component.translatable("commands.cvillager.inSync").withStyle(addColor ? ChatFormatting.GREEN : ChatFormatting.RESET);
