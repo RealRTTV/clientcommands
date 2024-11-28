@@ -192,9 +192,9 @@ public class Configs {
         }
     }
 
-    @Config(setter = @Config.Setter("setMaxVillagerBruteForceSimulationTicks"), temporary = true)
-    public static int maxVillagerBruteForceSimulationTicks = 12000;
-    public static void setMaxVillagerBruteForceSimulationTicks(int maxVillagerBruteForceSimulationTicks) {
-        Configs.maxVillagerBruteForceSimulationTicks = Mth.clamp(maxVillagerBruteForceSimulationTicks, 0, 1_000_000);
+    @Config(setter = @Config.Setter("setMaxVillagerSimulationTicks"), temporary = true)
+    public static int maxVillagerSimulationTicks = 12000;
+    public static void setMaxVillagerSimulationTicks(int maxVillagerSimulationTicks) {
+        Configs.maxVillagerSimulationTicks = Mth.clamp(maxVillagerSimulationTicks, 0, 1_000_000);
     }
 }

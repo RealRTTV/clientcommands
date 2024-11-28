@@ -207,7 +207,7 @@ public class VillagerCracker {
                         }
                     }
                 );
-                simulator.resetBruteForceState();
+                simulator.resetWaitingState();
                 hasClickedVillager = true;
             }
         }

@@ -44,7 +44,7 @@ public class VillagerRngSimulator {
     private boolean madeSound = false;
     private int totalAmbientSounds = 0;
     private int tickCount = 0;
-    private int totalTicksInBruteForce = 0;
+    private int totalTicksWaiting = 0;
     private float firstPitch = Float.NaN;
     private int ticksBetweenSounds = 0;
     private float secondPitch = Float.NaN;
@@ -133,7 +133,7 @@ public class VillagerRngSimulator {
     }
 
     public int getTicksRemaining() {
-        return totalTicksInBruteForce - tickCount;
+        return totalTicksWaiting - tickCount;
     }
 
     private void simulateBaseTick() {
@@ -153,7 +153,7 @@ public class VillagerRngSimulator {
     }
 
     public void updateProgressBar() {
-        ClientCommandHelper.updateOverlayProgressBar(tickCount, totalTicksInBruteForce, 50, 60);
+        ClientCommandHelper.updateOverlayProgressBar(tickCount, totalTicksWaiting, 50, 60);
     }
 
     @Nullable
@@ -202,9 +202,9 @@ public class VillagerRngSimulator {
         return offers;
     }
 
-    public void setTicksUntilBruteForceInteract(int ticks) {
+    public void setTicksUntilInteract(int ticks) {
         tickCount = 0;
-        totalTicksInBruteForce = ticks;
+        totalTicksWaiting = ticks;
     }
 
     public CrackedState getCrackedState() {
@@ -221,15 +221,15 @@ public class VillagerRngSimulator {
         prevAmbientSoundTime = 0;
         totalAmbientSounds = 0;
         tickCount = 0;
-        totalTicksInBruteForce = 0;
+        totalTicksWaiting = 0;
         firstPitch = Float.NaN;
         ticksBetweenSounds = 0;
         secondPitch = Float.NaN;
         seedsFromTwoPitches = null;
     }
 
-    public void resetBruteForceState() {
-        totalTicksInBruteForce = 0;
+    public void resetWaitingState() {
+        totalTicksWaiting = 0;
         tickCount = 0;
     }
 
@@ -381,7 +381,7 @@ public class VillagerRngSimulator {
     }
 
     @Nullable
-    public BruteForceResult bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxTicks, Predicate<VillagerCracker.Offer> predicate) {
+    public VillagerRngSimulator.OfferWaitingResult bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxTicks, Predicate<VillagerCracker.Offer> predicate) {
         Villager targetVillager = VillagerCracker.getVillager();
         if (targetVillager != null && getCrackedState().isCracked()) {
             VillagerRngSimulator branchedSimulator = this.copy();
@@ -399,7 +399,7 @@ public class VillagerRngSimulator {
                 VillagerCracker.Offer offer = offerSimulator.anyOffersMatch(listings, targetVillager, predicate);
                 if (offer != null) {
                     // we do the calls before this ticks processing so that since with 0ms ping, the server reads it next tick
-                    return new BruteForceResult(ticksPassed, offer);
+                    return new OfferWaitingResult(ticksPassed, offer);
                 }
                 branchedSimulator.simulateTick();
             }
@@ -519,7 +519,7 @@ public class VillagerRngSimulator {
         }
     }
 
-    public record BruteForceResult(int ticksPassed, VillagerCracker.Offer offer) {
+    public record OfferWaitingResult(int ticksPassed, VillagerCracker.Offer offer) {
     }
 
     public record SurroundingOffers(List<VillagerCracker.Offer[]> before, VillagerCracker.Offer[] middle, List<VillagerCracker.Offer[]> after) {

@@ -11,7 +11,6 @@ import net.earthcomputer.clientcommands.command.arguments.ItemAndEnchantmentsPre
 import net.earthcomputer.clientcommands.command.arguments.WithStringArgument;
 import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.earthcomputer.clientcommands.features.VillagerRngSimulator;
-import net.earthcomputer.clientcommands.task.LongTask;
 import net.earthcomputer.clientcommands.task.SimpleTask;
 import net.earthcomputer.clientcommands.task.TaskManager;
 import net.earthcomputer.clientcommands.util.CUtil;
@@ -270,9 +269,9 @@ public class VillagerCommand {
 
         VillagerTrades.ItemListing[] listings = VillagerTrades.TRADES.get(profession).getOrDefault(crackedLevel, new VillagerTrades.ItemListing[0]);
         int adjustmentTicks = levelUp ? -40 : 0;
-        VillagerRngSimulator.BruteForceResult result = VillagerCracker.simulator.bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerBruteForceSimulationTicks, offer -> VillagerCracker.goals.stream().anyMatch(goal -> goal.matches(offer)));
+        VillagerRngSimulator.OfferWaitingResult result = VillagerCracker.simulator.bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerSimulationTicks, offer -> VillagerCracker.goals.stream().anyMatch(goal -> goal.matches(offer)));
         if (result == null) {
-            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.bruteForce.failed", Configs.maxVillagerBruteForceSimulationTicks).withStyle(ChatFormatting.RED), 100);
+            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.bruteForce.failed", Configs.maxVillagerSimulationTicks).withStyle(ChatFormatting.RED), 100);
             return Command.SINGLE_SUCCESS;
         }
         VillagerRngSimulator.SurroundingOffers surroundingOffers = VillagerCracker.simulator.generateSurroundingOffers(listings, result.ticksPassed(), 1000);
@@ -289,8 +288,8 @@ public class VillagerCommand {
         VillagerCracker.targetOffer = offer;
         VillagerCracker.surroundingOffers = surroundingOffers;
         VillagerCracker.hasClickedVillager = false;
-        VillagerCracker.simulator.setTicksUntilBruteForceInteract(ticks);
-        TaskManager.addTask("cvillagerBruteForce", new SimpleTask() {
+        VillagerCracker.simulator.setTicksUntilInteract(ticks);
+        TaskManager.addTask("cvillagerWaiting", new SimpleTask() {
             @Override
             public boolean condition() {
                 return VillagerCracker.isRunning();
