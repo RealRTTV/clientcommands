@@ -12,6 +12,7 @@ import net.earthcomputer.clientcommands.command.arguments.WithStringArgument;
 import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.earthcomputer.clientcommands.features.VillagerRngSimulator;
 import net.earthcomputer.clientcommands.task.LongTask;
+import net.earthcomputer.clientcommands.task.SimpleTask;
 import net.earthcomputer.clientcommands.task.TaskManager;
 import net.earthcomputer.clientcommands.util.CUtil;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -289,24 +290,15 @@ public class VillagerCommand {
         VillagerCracker.surroundingOffers = surroundingOffers;
         VillagerCracker.hasClickedVillager = false;
         VillagerCracker.simulator.setTicksUntilBruteForceInteract(ticks);
-        TaskManager.addTask("cvillagerBruteForce", new LongTask() {
-            @Override
-            public void initialize() {
-            }
-
+        TaskManager.addTask("cvillagerBruteForce", new SimpleTask() {
             @Override
             public boolean condition() {
                 return VillagerCracker.isRunning();
             }
 
             @Override
-            public void increment() {
-            }
-
-            @Override
-            public void body() {
+            protected void onTick() {
                 VillagerCracker.simulator.updateProgressBar();
-                scheduleDelay();
             }
 
             @Override
