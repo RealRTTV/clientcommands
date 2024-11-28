@@ -314,7 +314,6 @@ public class VillagerCommand {
                 // check if `onCompleted` was cancelled
                 if (condition()) {
                     VillagerCracker.stopRunning();
-                    ClientCommandHelper.addOverlayMessage(Component.empty(), 0);
                 }
             }
         });

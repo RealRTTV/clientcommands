@@ -308,7 +308,6 @@ public class VillagerCracker {
                 player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0f, 1.0f);
             }
 
-            ClientCommandHelper.addOverlayMessage(Component.empty(), 0);
             simulator.reset();
             stopRunning();
         }
