@@ -269,9 +269,9 @@ public class VillagerCommand {
 
         VillagerTrades.ItemListing[] listings = VillagerTrades.TRADES.get(profession).getOrDefault(crackedLevel, new VillagerTrades.ItemListing[0]);
         int adjustmentTicks = levelUp ? -40 : 0;
-        VillagerRngSimulator.OfferWaitingResult result = VillagerCracker.simulator.bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerSimulationTicks, offer -> VillagerCracker.goals.stream().anyMatch(goal -> goal.matches(offer)));
+        VillagerRngSimulator.BruteForceResult result = VillagerCracker.simulator.bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerManipulationWaitTicks, offer -> VillagerCracker.goals.stream().anyMatch(goal -> goal.matches(offer)));
         if (result == null) {
-            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.bruteForce.failed", Configs.maxVillagerSimulationTicks).withStyle(ChatFormatting.RED), 100);
+            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.bruteForce.failed", Configs.maxVillagerManipulationWaitTicks).withStyle(ChatFormatting.RED), 100);
             return Command.SINGLE_SUCCESS;
         }
         VillagerRngSimulator.SurroundingOffers surroundingOffers = VillagerCracker.simulator.generateSurroundingOffers(listings, result.ticksPassed(), 1000);

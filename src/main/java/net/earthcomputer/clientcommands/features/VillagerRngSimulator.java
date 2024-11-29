@@ -381,7 +381,7 @@ public class VillagerRngSimulator {
     }
 
     @Nullable
-    public VillagerRngSimulator.OfferWaitingResult bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxTicks, Predicate<VillagerCracker.Offer> predicate) {
+    public VillagerRngSimulator.BruteForceResult bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxTicks, Predicate<VillagerCracker.Offer> predicate) {
         Villager targetVillager = VillagerCracker.getVillager();
         if (targetVillager != null && getCrackedState().isCracked()) {
             VillagerRngSimulator branchedSimulator = this.copy();
@@ -399,7 +399,7 @@ public class VillagerRngSimulator {
                 VillagerCracker.Offer offer = offerSimulator.anyOffersMatch(listings, targetVillager, predicate);
                 if (offer != null) {
                     // we do the calls before this ticks processing so that since with 0ms ping, the server reads it next tick
-                    return new OfferWaitingResult(ticksPassed, offer);
+                    return new BruteForceResult(ticksPassed, offer);
                 }
                 branchedSimulator.simulateTick();
             }
@@ -519,7 +519,7 @@ public class VillagerRngSimulator {
         }
     }
 
-    public record OfferWaitingResult(int ticksPassed, VillagerCracker.Offer offer) {
+    public record BruteForceResult(int ticksPassed, VillagerCracker.Offer offer) {
     }
 
     public record SurroundingOffers(List<VillagerCracker.Offer[]> before, VillagerCracker.Offer[] middle, List<VillagerCracker.Offer[]> after) {
