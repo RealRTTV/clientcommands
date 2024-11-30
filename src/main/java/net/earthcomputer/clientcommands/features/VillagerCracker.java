@@ -18,6 +18,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundAddExperienceOrbPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
@@ -25,6 +26,7 @@ import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
@@ -32,6 +34,8 @@ import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
+import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Nullable;
@@ -119,7 +123,7 @@ public class VillagerCracker {
         ClientLevel level = Minecraft.getInstance().level;
 
         if (level != null && level.getDayTime() % 24000 < 12000) { // todo, double check this works
-            ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));
+            simulator.onBadRNG("day");
         }
 
         cachedVillager = new WeakReference<>(villager);
@@ -149,6 +153,8 @@ public class VillagerCracker {
             simulator.onYesSoundPlayed(packet.getPitch());
         } else if (soundEvent == SoundEvents.GENERIC_SPLASH) {
             simulator.onSplashSoundPlayed(packet.getPitch());
+        } else if (BuiltInRegistries.SOUND_EVENT.getKey(soundEvent).getPath().startsWith("item.armor.equip_")) {
+            simulator.onBadRNG("itemEquipped");
         }
     }
 
@@ -188,6 +194,23 @@ public class VillagerCracker {
         if (targetVillager == null) {
             return;
         }
+
+        if (simulator.getCrackedState().isCracked()) {
+            if (!isResting(targetVillager.level().dayTime())) {
+                simulator.onBadRNG("day");
+            } else if (targetVillager.isInWater() && targetVillager.getFluidHeight(FluidTags.WATER) > targetVillager.getFluidJumpThreshold() || targetVillager.isInLava()) {
+                simulator.onBadRNG("swim");
+            } else if (!targetVillager.getActiveEffects().isEmpty()) {
+                simulator.onBadRNG("potion");
+            } else {
+                Vec3 pos = targetVillager.position();
+                int villagersNearVillager = targetVillager.level().getEntities(EntityTypeTest.forExactClass(Villager.class), AABB.ofSize(pos, 10.0, 10.0, 10.0), entity -> entity.position().distanceToSqr(pos) <= 5.0 * 5.0).size();
+                if (villagersNearVillager > 1) {
+                    simulator.onBadRNG("gossip");
+                }
+            }
+        }
+
 
         simulator.simulateTick();
 
@@ -264,8 +287,7 @@ public class VillagerCracker {
         }
 
         if (player.distanceTo(villager) > 2.0) {
-            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.distance").withStyle(ChatFormatting.RED), 100);
-            simulator.reset();
+            simulator.onBadRNG("distance");
             stopRunning();
             return;
         }
@@ -326,6 +348,11 @@ public class VillagerCracker {
 
     public static void stopRunning() {
         targetOffer = null;
+    }
+
+    public static boolean isResting(long dayTime) {
+        long timeOfDay = dayTime % 24_000;
+        return timeOfDay < 10 || timeOfDay >= 12_000;
     }
 
     public record Goal(

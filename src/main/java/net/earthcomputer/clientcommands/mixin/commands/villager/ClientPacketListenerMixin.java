@@ -1,32 +1,27 @@
 package net.earthcomputer.clientcommands.mixin.commands.villager;
 
-import net.earthcomputer.clientcommands.command.ClientCommandHelper;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.GlobalPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundAddExperienceOrbPacket;
 import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundDamageEventPacket;
 import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket;
-import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientPacketListener.class)
 public class ClientPacketListenerMixin {
-    @Shadow
-    private ClientLevel level;
-
     @Inject(method = "handleSoundEvent", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/util/thread/BlockableEventLoop;)V"))
     private void onHandleSoundEvent(ClientboundSoundPacket packet, CallbackInfo ci) {
         Villager targetVillager = VillagerCracker.getVillager();
@@ -62,13 +57,10 @@ public class ClientPacketListenerMixin {
         }
     }
 
-    @Inject(method = "handleSetTime", at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/util/thread/BlockableEventLoop;)V"))
-    private void handleSetTime(ClientboundSetTimePacket packet, CallbackInfo ci) {
-        if (level.getDayTime() < 12000 && packet.dayTime() >= 12000) {
-            Villager targetVillager = VillagerCracker.getVillager();
-            if (targetVillager != null) {
-                ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));
-            }
+    @Inject(method = "handleDamageEvent", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;handleDamageEvent(Lnet/minecraft/world/damagesource/DamageSource;)V"))
+    private void onHandleDamageEvent(ClientboundDamageEventPacket packet, CallbackInfo ci, @Local Entity entity) {
+        if (entity == VillagerCracker.getVillager() && VillagerCracker.simulator.getCrackedState().isCracked()) {
+            VillagerCracker.simulator.onBadRNG("mobHurt");
         }
     }
 }

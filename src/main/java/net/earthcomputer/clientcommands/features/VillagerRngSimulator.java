@@ -1,5 +1,6 @@
 package net.earthcomputer.clientcommands.features;
 
+import com.demonwav.mcdev.annotations.Translatable;
 import com.seedfinding.latticg.math.component.BigFraction;
 import com.seedfinding.latticg.math.component.BigMatrix;
 import com.seedfinding.latticg.math.component.BigVector;
@@ -241,8 +242,7 @@ public class VillagerRngSimulator {
     public void onAmbientSoundPlayed(float pitch) {
         boolean justReset = false;
         if (totalAmbientSounds == 2 && !madeSound) {
-            ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.ambient").withStyle(ChatFormatting.RED), 100);
-            reset();
+            onBadRNG("ambient");
             justReset = true;
         }
 
@@ -308,6 +308,11 @@ public class VillagerRngSimulator {
         }
     }
 
+    public void onBadRNG(@Translatable(prefix = "villagerManip.reset.") String reason) {
+        ClientCommandHelper.sendFeedback(Component.translatable("villagerManip.reset", Component.translatable("villagerManip.reset." + reason)).withStyle(ChatFormatting.RED));
+        reset();
+    }
+
     public void onNoSoundPlayed(float pitch, boolean fromGuiInteract) {
         // the last received action before the next tick's clock
         // played both when interacting with a villager without a profession and when using the villager gui
@@ -318,8 +323,7 @@ public class VillagerRngSimulator {
             }
             float simulatedPitch = (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f;
             if (pitch != simulatedPitch) {
-                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.no").withStyle(ChatFormatting.RED), 100);
-                reset();
+                onBadRNG("no");
             } else {
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             }
@@ -334,8 +338,7 @@ public class VillagerRngSimulator {
             ambientSoundTime = -80;
             float simulatedPitch = (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f;
             if (pitch != simulatedPitch) {
-                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.yes").withStyle(ChatFormatting.RED), 100);
-                reset();
+                onBadRNG("yes");
             } else {
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             }
@@ -357,8 +360,7 @@ public class VillagerRngSimulator {
 
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             } else {
-                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.splash").withStyle(ChatFormatting.RED), 100);
-                reset();
+                onBadRNG("splash");
             }
         }
     }
@@ -372,8 +374,7 @@ public class VillagerRngSimulator {
             boolean leveledUp = value > 3 + 3;
             if (leveledUp) simulatedValue += 5;
             if (value != simulatedValue) {
-                ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.outOfSync.xpOrb").withStyle(ChatFormatting.RED), 100);
-                reset();
+                onBadRNG("xpOrb");
             } else {
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             }

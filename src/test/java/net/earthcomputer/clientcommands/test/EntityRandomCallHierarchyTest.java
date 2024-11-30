@@ -46,6 +46,7 @@ public final class EntityRandomCallHierarchyTest {
                 .recurseThrough("net/minecraft/world/entity/Entity", "getRandomY", "()D")
                 .recurseThrough("net/minecraft/world/entity/Entity", "getRandomZ", "(D)D")
                 .recurseThrough("net/minecraft/world/entity/LivingEntity", "spawnItemParticles", "(Lnet/minecraft/world/item/ItemStack;I)V")
+                .recurseThrough("net/minecraft/world/entity/LivingEntity", "makeSound", "(Lnet/minecraft/sounds/SoundEvent;)V")
                 .recurseThrough("net/minecraft/world/entity/npc/AbstractVillager", "addParticlesAroundSelf", "(Lnet/minecraft/core/particles/ParticleOptions;)V")
                 .walk((reference, callStack) -> {
                     if (filterAiGoal(reference.owner(), "net/minecraft/world/entity/npc/Villager")) {
