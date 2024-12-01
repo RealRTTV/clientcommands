@@ -132,7 +132,7 @@ public class VillagerCracker {
 
         ClientLevel level = Minecraft.getInstance().level;
 
-        if (level != null && level.getDayTime() % 24000 < 12000) { // todo, double check this works
+        if (level != null && level.getDayTime() % 24000 < 12000) {
             simulator.onBadRNG("day");
             ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));
         }
@@ -257,41 +257,38 @@ public class VillagerCracker {
             simulator.onBadRNG("itemInMainHand");
         } else {
             Level level = targetVillager.level();
+            Vec3 pos = targetVillager.position();
+            BlockPos blockPos = targetVillager.blockPosition();
 
-            {
-                Vec3 pos = targetVillager.position();
-                int villagersNearVillager = level.getEntities(EntityTypeTest.forExactClass(Villager.class), AABB.ofSize(pos, 10.0, 10.0, 10.0), entity -> entity.position().distanceToSqr(pos) <= 5.0 * 5.0).size();
-                if (villagersNearVillager > 1) {
-                    simulator.onBadRNG("gossip");
-                    return;
-                }
+            int villagersNearVillager = level.getEntities(EntityTypeTest.forExactClass(Villager.class), AABB.ofSize(pos, 10.0, 10.0, 10.0), entity -> entity.position().distanceToSqr(pos) <= 5.0 * 5.0).size();
+            if (villagersNearVillager > 1) {
+                simulator.onBadRNG("gossip");
+                return;
             }
 
-            {
-                BlockPos pos = targetVillager.blockPosition();
-                List<BlockPos> validBedHeadPositions = List.of(pos.north(3), pos.east(3), pos.south(3), pos.west(3));
-                List<BlockPos> bedPartPositions = BlockPos.withinManhattanStream(pos, 15, 7, 15).map(BlockPos::new).filter(p -> level.getBlockState(p).is(BlockTags.BEDS) && level.getBlockState(p).getValue(BedBlock.OCCUPIED) == Boolean.FALSE && level.getBlockState(p).getValue(BedBlock.PART) == BedPart.HEAD).toList();
-                Direction bedDirection;
-                if (bedPartPositions.size() == 1 && validBedHeadPositions.contains(bedPartPositions.getFirst())) {
-                    bedDirection = Direction.Plane.HORIZONTAL.stream().skip(validBedHeadPositions.indexOf(bedPartPositions.getFirst())).findAny().orElse(null);
-                } else {
-                    simulator.onBadRNG("invalidBedPosition");
+            List<BlockPos> validBedHeadPositions = List.of(blockPos.north(3), blockPos.east(3), blockPos.south(3), blockPos.west(3));
+            List<BlockPos> bedHeadPositions = BlockPos.withinManhattanStream(blockPos, 15, 7, 15).map(BlockPos::new).filter(p -> level.getBlockState(p).is(BlockTags.BEDS) && level.getBlockState(p).getValue(BedBlock.OCCUPIED) == Boolean.FALSE && level.getBlockState(p).getValue(BedBlock.PART) == BedPart.HEAD).toList();
+            Direction bedDirection;
+            if (bedHeadPositions.size() == 1 && validBedHeadPositions.contains(bedHeadPositions.getFirst())) {
+                bedDirection = Direction.Plane.HORIZONTAL.stream().skip(validBedHeadPositions.indexOf(bedHeadPositions.getFirst())).findAny().orElse(null);
+            } else {
+                simulator.onBadRNG("invalidBedPosition");
+                sendInvalidSetupHelp();
+                return;
+            }
+
+            for (Direction direction : Direction.Plane.HORIZONTAL) {
+                BlockPos airPos = blockPos.relative(direction);
+                BlockPos trapdoorPos = airPos.above();
+                BlockState airPosState = level.getBlockState(airPos);
+                BlockState trapdoorPosState = level.getBlockState(trapdoorPos);
+                if (!((airPosState.isAir() || direction != bedDirection) && trapdoorPosState.is(BlockTags.TRAPDOORS) && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.OPEN) == Boolean.FALSE)) {
+                    simulator.onBadRNG("invalidCage");
                     sendInvalidSetupHelp();
                     return;
                 }
-
-                for (Direction direction : Direction.Plane.HORIZONTAL) {
-                    BlockPos airPos = pos.relative(direction);
-                    BlockPos trapdoorPos = airPos.above();
-                    BlockState airPosState = level.getBlockState(airPos);
-                    BlockState trapdoorPosState = level.getBlockState(trapdoorPos);
-                    if (!((airPosState.isAir() || direction != bedDirection) && trapdoorPosState.is(BlockTags.TRAPDOORS) && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.OPEN) == Boolean.FALSE)) {
-                        simulator.onBadRNG("invalidCage");
-                        sendInvalidSetupHelp();
-                        return;
-                    }
-                }
             }
+
         }
     }
 
