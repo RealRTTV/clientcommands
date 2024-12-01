@@ -221,7 +221,7 @@ public class VillagerCracker {
                 CUtil.sendAtPreciseTime(
                     System.nanoTime() + millisecondsUntilInteract * 1_000_000L,
                     ServerboundInteractPacket.createInteractionPacket(targetVillager, false, InteractionHand.MAIN_HAND),
-                    () -> true,
+                    VillagerCracker::isRunning,
                     () -> {
                         LocalPlayer player = Minecraft.getInstance().player;
                         if (player == oldPlayer) {
