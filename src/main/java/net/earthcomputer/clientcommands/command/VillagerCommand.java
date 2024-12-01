@@ -130,7 +130,7 @@ public class VillagerCommand {
 
         String firstString = first == null ? null : first.string() + " " + CUtil.boundsToString(firstCount);
         String secondString = second == null ? null : second.string() + " " + CUtil.boundsToString(secondCount);
-        String resultString = result.string() + " " + CUtil.boundsToString(resultCount);
+        String resultString = (result.string().endsWith(" from") ? result.string().substring(0, result.string().length() - " from".length()) : result.string()) + " " + CUtil.boundsToString(resultCount);
 
         VillagerCracker.goals.add(new VillagerCracker.Goal(
             resultString,
