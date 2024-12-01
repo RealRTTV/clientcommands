@@ -213,7 +213,7 @@ public class VillagerCracker {
 
         simulator.simulateTick();
 
-        if (simulator.getCrackedState().isCracked() && isRunning() && !hasClickedVillager) {
+        if (simulator.isCracked() && isRunning() && !hasClickedVillager) {
             int millisecondsUntilInteract = simulator.getTicksRemaining() * serverMspt - PingCommand.getLocalPing() + magicMillisecondCorrection;
             if (millisecondsUntilInteract < 200) {
                 LocalPlayer oldPlayer = Minecraft.getInstance().player;

@@ -221,7 +221,7 @@ public class VillagerRngSimulator {
     }
 
     public boolean isCracked() {
-        return getCrackedState().isCracked();
+        return getCrackedState() == CrackedState.CRACKED;
     }
 
     public boolean isAtLeastPartiallyCracked() {
@@ -520,10 +520,6 @@ public class VillagerRngSimulator {
         UNCRACKED,
         PARTIALLY_CRACKED,
         CRACKED;
-
-        public boolean isCracked() {
-            return this == CRACKED;
-        }
 
         public MutableComponent getMessage(boolean addColor) {
             return switch (this) {
