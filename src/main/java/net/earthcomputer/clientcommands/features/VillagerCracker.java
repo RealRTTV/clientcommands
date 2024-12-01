@@ -202,62 +202,14 @@ public class VillagerCracker {
     public static void onServerTick() {
         clockTicksSinceLastTimeSync++;
 
-        final Minecraft mc = Minecraft.getInstance();
         final Villager targetVillager = getVillager();
         if (targetVillager == null) {
             return;
         }
 
-        a: if (simulator.isAtLeastPartiallyCracked()) {
-            if (!isResting(targetVillager.level().dayTime())) {
-                simulator.onBadRNG("day");
-                ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));
-            } else if (targetVillager.isInWater() && targetVillager.getFluidHeight(FluidTags.WATER) > targetVillager.getFluidJumpThreshold() || targetVillager.isInLava()) {
-                simulator.onBadRNG("swim");
-            } else if (!targetVillager.getActiveEffects().isEmpty()) {
-                simulator.onBadRNG("potion");
-            } else if (!mc.player.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {
-                simulator.onBadRNG("itemInMainHand");
-            } else {
-                Level level = targetVillager.level();
-
-                {
-                    Vec3 pos = targetVillager.position();
-                    int villagersNearVillager = level.getEntities(EntityTypeTest.forExactClass(Villager.class), AABB.ofSize(pos, 10.0, 10.0, 10.0), entity -> entity.position().distanceToSqr(pos) <= 5.0 * 5.0).size();
-                    if (villagersNearVillager > 1) {
-                        simulator.onBadRNG("gossip");
-                        break a;
-                    }
-                }
-
-                {
-                    BlockPos pos = targetVillager.blockPosition();
-                    List<BlockPos> validBedHeadPositions = List.of(pos.north(3), pos.east(3), pos.south(3), pos.west(3));
-                    List<BlockPos> bedPartPositions = BlockPos.withinManhattanStream(pos, 15, 7, 15).map(BlockPos::new).filter(p -> level.getBlockState(p).is(BlockTags.BEDS) && level.getBlockState(p).getValue(BedBlock.OCCUPIED) == Boolean.FALSE && level.getBlockState(p).getValue(BedBlock.PART) == BedPart.HEAD).toList();
-                    Direction bedDirection;
-                    if (bedPartPositions.size() == 1 && validBedHeadPositions.contains(bedPartPositions.getFirst())) {
-                        bedDirection = Direction.Plane.HORIZONTAL.stream().skip(validBedHeadPositions.indexOf(bedPartPositions.getFirst())).findAny().orElse(null);
-                    } else {
-                        simulator.onBadRNG("invalidBedPosition");
-                        sendInvalidSetupHelp();
-                        break a;
-                    }
-
-                    for (Direction direction : Direction.Plane.HORIZONTAL) {
-                        BlockPos airPos = pos.relative(direction);
-                        BlockPos trapdoorPos = airPos.above();
-                        BlockState airPosState = level.getBlockState(airPos);
-                        BlockState trapdoorPosState = level.getBlockState(trapdoorPos);
-                        if (!((airPosState.isAir() || direction != bedDirection) && trapdoorPosState.is(BlockTags.TRAPDOORS) && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.OPEN) == Boolean.FALSE)) {
-                            simulator.onBadRNG("invalidCage");
-                            sendInvalidSetupHelp();
-                            break a;
-                        }
-                    }
-                }
-            }
+        if (simulator.isAtLeastPartiallyCracked()) {
+            checkVillagerSetup();
         }
-
 
         simulator.simulateTick();
 
@@ -279,6 +231,63 @@ public class VillagerCracker {
                 );
                 simulator.resetWaitingState();
                 hasClickedVillager = true;
+            }
+        }
+    }
+
+    private static void checkVillagerSetup() {
+        final Minecraft mc = Minecraft.getInstance();
+        final Villager targetVillager = getVillager();
+
+        if (targetVillager == null) {
+            return;
+        }
+
+        if (!isResting(targetVillager.level().dayTime())) {
+            simulator.onBadRNG("day");
+            ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));
+        } else if (targetVillager.isInWater() && targetVillager.getFluidHeight(FluidTags.WATER) > targetVillager.getFluidJumpThreshold() || targetVillager.isInLava()) {
+            simulator.onBadRNG("swim");
+        } else if (!targetVillager.getActiveEffects().isEmpty()) {
+            simulator.onBadRNG("potion");
+        } else if (!mc.player.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {
+            simulator.onBadRNG("itemInMainHand");
+        } else {
+            Level level = targetVillager.level();
+
+            {
+                Vec3 pos = targetVillager.position();
+                int villagersNearVillager = level.getEntities(EntityTypeTest.forExactClass(Villager.class), AABB.ofSize(pos, 10.0, 10.0, 10.0), entity -> entity.position().distanceToSqr(pos) <= 5.0 * 5.0).size();
+                if (villagersNearVillager > 1) {
+                    simulator.onBadRNG("gossip");
+                    return;
+                }
+            }
+
+            {
+                BlockPos pos = targetVillager.blockPosition();
+                List<BlockPos> validBedHeadPositions = List.of(pos.north(3), pos.east(3), pos.south(3), pos.west(3));
+                List<BlockPos> bedPartPositions = BlockPos.withinManhattanStream(pos, 15, 7, 15).map(BlockPos::new).filter(p -> level.getBlockState(p).is(BlockTags.BEDS) && level.getBlockState(p).getValue(BedBlock.OCCUPIED) == Boolean.FALSE && level.getBlockState(p).getValue(BedBlock.PART) == BedPart.HEAD).toList();
+                Direction bedDirection;
+                if (bedPartPositions.size() == 1 && validBedHeadPositions.contains(bedPartPositions.getFirst())) {
+                    bedDirection = Direction.Plane.HORIZONTAL.stream().skip(validBedHeadPositions.indexOf(bedPartPositions.getFirst())).findAny().orElse(null);
+                } else {
+                    simulator.onBadRNG("invalidBedPosition");
+                    sendInvalidSetupHelp();
+                    return;
+                }
+
+                for (Direction direction : Direction.Plane.HORIZONTAL) {
+                    BlockPos airPos = pos.relative(direction);
+                    BlockPos trapdoorPos = airPos.above();
+                    BlockState airPosState = level.getBlockState(airPos);
+                    BlockState trapdoorPosState = level.getBlockState(trapdoorPos);
+                    if (!((airPosState.isAir() || direction != bedDirection) && trapdoorPosState.is(BlockTags.TRAPDOORS) && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.OPEN) == Boolean.FALSE)) {
+                        simulator.onBadRNG("invalidCage");
+                        sendInvalidSetupHelp();
+                        return;
+                    }
+                }
             }
         }
     }
