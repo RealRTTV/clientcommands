@@ -85,10 +85,8 @@ net/minecraft/world/entity/LivingEntity.baseTick ()V <- net/minecraft/world/enti
 net/minecraft/world/entity/LivingEntity.baseTick ()V <- net/minecraft/world/entity/Entity.random
 net/minecraft/world/entity/LivingEntity.baseTick ()V <- net/minecraft/world/entity/Entity.random
 net/minecraft/world/entity/LivingEntity.decreaseAirSupply (I)I <- net/minecraft/world/entity/Entity.random
-net/minecraft/world/entity/LivingEntity.getVoicePitch ()F <- net/minecraft/world/entity/Entity.random
-net/minecraft/world/entity/LivingEntity.getVoicePitch ()F <- net/minecraft/world/entity/Entity.random
-net/minecraft/world/entity/LivingEntity.getVoicePitch ()F <- net/minecraft/world/entity/Entity.random
-net/minecraft/world/entity/LivingEntity.getVoicePitch ()F <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/LivingEntity.makeSound (Lnet/minecraft/sounds/SoundEvent;)V <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.tick (Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/PathfinderMob;J)V <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
 net/minecraft/world/entity/LivingEntity.handleDamageEvent (Lnet/minecraft/world/damagesource/DamageSource;)V <- net/minecraft/world/entity/Entity.random
 net/minecraft/world/entity/LivingEntity.handleDamageEvent (Lnet/minecraft/world/damagesource/DamageSource;)V <- net/minecraft/world/entity/Entity.random
 net/minecraft/world/entity/LivingEntity.handleEntityEvent (B)V <- net/minecraft/world/entity/Entity.random
