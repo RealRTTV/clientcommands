@@ -59,7 +59,7 @@ public class ClientPacketListenerMixin {
 
     @Inject(method = "handleDamageEvent", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;handleDamageEvent(Lnet/minecraft/world/damagesource/DamageSource;)V"))
     private void onHandleDamageEvent(ClientboundDamageEventPacket packet, CallbackInfo ci, @Local Entity entity) {
-        if (entity == VillagerCracker.getVillager() && VillagerCracker.simulator.getCrackedState().isCracked()) {
+        if (entity == VillagerCracker.getVillager() && VillagerCracker.simulator.isAtLeastPartiallyCracked()) {
             VillagerCracker.simulator.onBadRNG("mobHurt");
         }
     }

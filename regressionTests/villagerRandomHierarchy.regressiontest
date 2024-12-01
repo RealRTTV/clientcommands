@@ -85,7 +85,15 @@ net/minecraft/world/entity/LivingEntity.baseTick ()V <- net/minecraft/world/enti
 net/minecraft/world/entity/LivingEntity.baseTick ()V <- net/minecraft/world/entity/Entity.random
 net/minecraft/world/entity/LivingEntity.baseTick ()V <- net/minecraft/world/entity/Entity.random
 net/minecraft/world/entity/LivingEntity.decreaseAirSupply (I)I <- net/minecraft/world/entity/Entity.random
-net/minecraft/world/entity/LivingEntity.makeSound (Lnet/minecraft/sounds/SoundEvent;)V <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/LivingEntity.hurtServer (Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/damagesource/DamageSource;F)Z <- net/minecraft/world/entity/LivingEntity.makeSound <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/LivingEntity.playHurtSound (Lnet/minecraft/world/damagesource/DamageSource;)V <- net/minecraft/world/entity/LivingEntity.makeSound <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/Mob.playAmbientSound ()V <- net/minecraft/world/entity/LivingEntity.makeSound <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/monster/hoglin/HoglinAi.updateActivity (Lnet/minecraft/world/entity/monster/hoglin/Hoglin;)V <- net/minecraft/world/entity/LivingEntity.makeSound <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/monster/piglin/PiglinAi.updateActivity (Lnet/minecraft/world/entity/monster/piglin/Piglin;)V <- net/minecraft/world/entity/LivingEntity.makeSound <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/npc/AbstractVillager.notifyTradeUpdated (Lnet/minecraft/world/item/ItemStack;)V <- net/minecraft/world/entity/LivingEntity.makeSound <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/npc/AbstractVillager.playCelebrateSound ()V <- net/minecraft/world/entity/LivingEntity.makeSound <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/npc/Villager.playWorkSound ()V <- net/minecraft/world/entity/LivingEntity.makeSound <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
+net/minecraft/world/entity/npc/Villager.setUnhappy ()V <- net/minecraft/world/entity/LivingEntity.makeSound <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
 net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.tick (Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/PathfinderMob;J)V <- net/minecraft/world/entity/LivingEntity.getVoicePitch <- net/minecraft/world/entity/Entity.random
 net/minecraft/world/entity/LivingEntity.handleDamageEvent (Lnet/minecraft/world/damagesource/DamageSource;)V <- net/minecraft/world/entity/Entity.random
 net/minecraft/world/entity/LivingEntity.handleDamageEvent (Lnet/minecraft/world/damagesource/DamageSource;)V <- net/minecraft/world/entity/Entity.random

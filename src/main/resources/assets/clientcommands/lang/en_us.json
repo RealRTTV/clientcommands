@@ -266,6 +266,7 @@
   "commands.cvillager.noProfession": "The targeted villager has no profession",
   "commands.cvillager.notAVillager": "Target was not a villager",
   "commands.cvillager.notLevel1": "The targeted villager has level above 1",
+  "commands.cvillager.uncracked": "Your villager's RNG is not cracked (~18 quintillion seeds remain)",
   "commands.cvillager.partiallyCracked": "Your villager's RNG is partially cracked (~83m seeds remain)",
   "commands.cvillager.removeGoal.invalidIndex": "Unable to remove goal %s, you only have %s goals",
   "commands.cvillager.removeGoal.success": "Successfully removed goal %s",
@@ -287,6 +288,14 @@
   "villagerManip.reset.splash": "Bad Splash Noise",
   "villagerManip.reset.xpOrb": "Bad XP Orb Size",
   "villagerManip.reset.yes": "Bad Happy Noise",
+  "villagerManip.reset.itemInMainHand": "Item in Main Hand",
+  "villagerManip.reset.invalidBedPosition": "Invalid Bed Position",
+  "villagerManip.reset.invalidCage": "Invalid Villager Cage",
+
+  "villagerManip.help.day": "Help: Villager RNG manipulation can only be done at night-time",
+  "villagerManip.help.setup.prefix": "Help: Trap the villager with trapdoors at their head with a bed's head exactly 3 blocks away in any direction, as seen in ",
+  "villagerManip.help.setup.here": "this",
+  "villagerManip.help.setup.suffix": " image",
 
   "commands.cwe.playerNotFound": "Player not found",
 

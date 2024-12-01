@@ -17,8 +17,11 @@ import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundAddExperienceOrbPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
@@ -26,6 +29,7 @@ import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -34,6 +38,12 @@ import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.TrapDoorBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BedPart;
+import net.minecraft.world.level.block.state.properties.Half;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -41,10 +51,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Predicate;
 
 public class VillagerCracker {
@@ -124,10 +131,15 @@ public class VillagerCracker {
 
         if (level != null && level.getDayTime() % 24000 < 12000) { // todo, double check this works
             simulator.onBadRNG("day");
+            ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));
         }
 
-        cachedVillager = new WeakReference<>(villager);
-        villagerUuid = villager == null ? null : villager.getUUID();
+        if (villager != null) {
+            cachedVillager = new WeakReference<>(villager);
+            villagerUuid = villager.getUUID();
+        } else {
+            reset();
+        }
     }
 
     public static void setClockPos(@Nullable GlobalPos pos) {
@@ -190,23 +202,58 @@ public class VillagerCracker {
     public static void onServerTick() {
         clockTicksSinceLastTimeSync++;
 
-        Villager targetVillager = getVillager();
+        final Minecraft mc = Minecraft.getInstance();
+        final Villager targetVillager = getVillager();
         if (targetVillager == null) {
             return;
         }
 
-        if (simulator.getCrackedState().isCracked()) {
+        a: if (simulator.isAtLeastPartiallyCracked()) {
             if (!isResting(targetVillager.level().dayTime())) {
                 simulator.onBadRNG("day");
+                ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));
             } else if (targetVillager.isInWater() && targetVillager.getFluidHeight(FluidTags.WATER) > targetVillager.getFluidJumpThreshold() || targetVillager.isInLava()) {
                 simulator.onBadRNG("swim");
             } else if (!targetVillager.getActiveEffects().isEmpty()) {
                 simulator.onBadRNG("potion");
+            } else if (!mc.player.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {
+                simulator.onBadRNG("itemInMainHand");
             } else {
-                Vec3 pos = targetVillager.position();
-                int villagersNearVillager = targetVillager.level().getEntities(EntityTypeTest.forExactClass(Villager.class), AABB.ofSize(pos, 10.0, 10.0, 10.0), entity -> entity.position().distanceToSqr(pos) <= 5.0 * 5.0).size();
-                if (villagersNearVillager > 1) {
-                    simulator.onBadRNG("gossip");
+                Level level = targetVillager.level();
+
+                {
+                    Vec3 pos = targetVillager.position();
+                    int villagersNearVillager = level.getEntities(EntityTypeTest.forExactClass(Villager.class), AABB.ofSize(pos, 10.0, 10.0, 10.0), entity -> entity.position().distanceToSqr(pos) <= 5.0 * 5.0).size();
+                    if (villagersNearVillager > 1) {
+                        simulator.onBadRNG("gossip");
+                        break a;
+                    }
+                }
+
+                {
+                    BlockPos pos = targetVillager.blockPosition();
+                    List<BlockPos> validBedHeadPositions = List.of(pos.north(3), pos.east(3), pos.south(3), pos.west(3));
+                    List<BlockPos> bedPartPositions = BlockPos.withinManhattanStream(pos, 15, 7, 15).map(BlockPos::new).filter(p -> level.getBlockState(p).is(BlockTags.BEDS) && level.getBlockState(p).getValue(BedBlock.OCCUPIED) == Boolean.FALSE && level.getBlockState(p).getValue(BedBlock.PART) == BedPart.HEAD).toList();
+                    Direction bedDirection;
+                    if (bedPartPositions.size() == 1 && validBedHeadPositions.contains(bedPartPositions.getFirst())) {
+                        bedDirection = Direction.Plane.HORIZONTAL.stream().skip(validBedHeadPositions.indexOf(bedPartPositions.getFirst())).findAny().orElse(null);
+                    } else {
+                        simulator.onBadRNG("invalidBedPosition");
+                        sendInvalidSetupHelp();
+                        break a;
+                    }
+
+                    for (Direction direction : Direction.Plane.HORIZONTAL) {
+                        BlockPos airPos = pos.relative(direction);
+                        BlockPos trapdoorPos = airPos.above();
+                        BlockState airPosState = level.getBlockState(airPos);
+                        BlockState trapdoorPosState = level.getBlockState(trapdoorPos);
+                        if (!((airPosState.isAir() || direction != bedDirection) && trapdoorPosState.is(BlockTags.TRAPDOORS) && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.OPEN) == Boolean.FALSE)) {
+                            simulator.onBadRNG("invalidCage");
+                            sendInvalidSetupHelp();
+                            break a;
+                        }
+                    }
                 }
             }
         }
@@ -214,7 +261,7 @@ public class VillagerCracker {
 
         simulator.simulateTick();
 
-        if (isRunning() && !hasClickedVillager) {
+        if (simulator.getCrackedState().isCracked() && isRunning() && !hasClickedVillager) {
             int millisecondsUntilInteract = simulator.getTicksRemaining() * serverMspt - PingCommand.getLocalPing() + magicMillisecondCorrection;
             if (millisecondsUntilInteract < 200) {
                 LocalPlayer oldPlayer = Minecraft.getInstance().player;
@@ -234,6 +281,10 @@ public class VillagerCracker {
                 hasClickedVillager = true;
             }
         }
+    }
+
+    private static void sendInvalidSetupHelp() {
+        ClientCommandHelper.sendHelp(Component.translatable("villagerManip.help.setup.prefix").append(Component.translatable("villagerManip.help.setup.here").withStyle(ChatFormatting.UNDERLINE).withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://raw.githubusercontent.com/Earthcomputer/clientcommands/refs/heads/fabric/villager_rng_setup.png")))).append(Component.translatable("villagerManip.help.setup.suffix")));
     }
 
     private static void onDisconnect() {
@@ -339,6 +390,7 @@ public class VillagerCracker {
         simulator.reset();
         clockPos = null;
         villagerUuid = null;
+        cachedVillager = new WeakReference<>(null);
         stopRunning();
     }
 

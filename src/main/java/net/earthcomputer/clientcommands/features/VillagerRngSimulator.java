@@ -154,12 +154,14 @@ public class VillagerRngSimulator {
     }
 
     public void updateProgressBar() {
-        ClientCommandHelper.updateOverlayProgressBar(tickCount, totalTicksWaiting, 50, 60);
+        if (totalTicksWaiting > 0) {
+            ClientCommandHelper.updateOverlayProgressBar(tickCount, totalTicksWaiting, 50, 60);
+        }
     }
 
     @Nullable
     public VillagerCracker.Offer anyOffersMatch(VillagerTrades.ItemListing[] listings, Entity trader, Predicate<VillagerCracker.Offer> predicate) {
-        if (!getCrackedState().isCracked()) {
+        if (!isCracked()) {
             return null;
         }
 
@@ -183,7 +185,7 @@ public class VillagerRngSimulator {
 
     @Nullable
     public VillagerCracker.Offer[] generateOffers(VillagerTrades.ItemListing[] listings, Entity trader) {
-        if (!getCrackedState().isCracked()) {
+        if (!isCracked()) {
             return null;
         }
 
@@ -209,11 +211,21 @@ public class VillagerRngSimulator {
     }
 
     public CrackedState getCrackedState() {
-        if (random == null || totalAmbientSounds < 2) {
+        if (totalAmbientSounds == 0) {
             return CrackedState.UNCRACKED;
+        } else if (totalAmbientSounds > 0 && random == null) {
+            return CrackedState.PARTIALLY_CRACKED;
         }
 
         return CrackedState.CRACKED;
+    }
+
+    public boolean isCracked() {
+        return getCrackedState().isCracked();
+    }
+
+    public boolean isAtLeastPartiallyCracked() {
+        return getCrackedState() != CrackedState.UNCRACKED;
     }
 
     public void reset() {
@@ -384,7 +396,7 @@ public class VillagerRngSimulator {
     @Nullable
     public VillagerRngSimulator.BruteForceResult bruteForceOffers(VillagerTrades.ItemListing[] listings, int minTicks, int maxTicks, Predicate<VillagerCracker.Offer> predicate) {
         Villager targetVillager = VillagerCracker.getVillager();
-        if (targetVillager != null && getCrackedState().isCracked()) {
+        if (targetVillager != null && isCracked()) {
             VillagerRngSimulator branchedSimulator = this.copy();
             int ticksPassed = 0;
 
@@ -413,7 +425,7 @@ public class VillagerRngSimulator {
     public SurroundingOffers generateSurroundingOffers(VillagerTrades.ItemListing[] listings, int centerTicks, int radius) {
         Villager targetVillager = VillagerCracker.getVillager();
 
-        if (targetVillager == null || !getCrackedState().isCracked()) {
+        if (targetVillager == null || !isCracked()) {
             return null;
         }
 
@@ -506,6 +518,7 @@ public class VillagerRngSimulator {
 
     public enum CrackedState {
         UNCRACKED,
+        PARTIALLY_CRACKED,
         CRACKED;
 
         public boolean isCracked() {
@@ -514,7 +527,8 @@ public class VillagerRngSimulator {
 
         public MutableComponent getMessage(boolean addColor) {
             return switch (this) {
-                case UNCRACKED -> Component.translatable("commands.cvillager.partiallyCracked").withStyle(addColor ? ChatFormatting.RED : ChatFormatting.RESET);
+                case UNCRACKED -> Component.translatable("commands.cvillager.uncracked").withStyle(addColor ? ChatFormatting.RED : ChatFormatting.RESET);
+                case PARTIALLY_CRACKED -> Component.translatable("commands.cvillager.partiallyCracked").withStyle(addColor ? ChatFormatting.RED : ChatFormatting.RESET);
                 case CRACKED -> Component.translatable("commands.cvillager.inSync").withStyle(addColor ? ChatFormatting.GREEN : ChatFormatting.RESET);
             };
         }

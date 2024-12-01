@@ -247,7 +247,7 @@ public class VillagerCommand {
             throw NO_GOALS_EXCEPTION.create();
         }
 
-        if (targetVillager == null || !VillagerCracker.simulator.getCrackedState().isCracked()) {
+        if (targetVillager == null || !VillagerCracker.simulator.isCracked()) {
             throw NO_CRACKED_VILLAGER_PRESENT_EXCEPTION.create();
         }
 
