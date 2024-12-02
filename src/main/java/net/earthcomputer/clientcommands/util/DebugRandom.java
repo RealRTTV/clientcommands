@@ -19,18 +19,7 @@ import net.minecraft.world.level.levelgen.RandomSupport;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
-import javax.swing.DefaultListModel;
-import javax.swing.JComponent;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTabbedPane;
-import javax.swing.JTextArea;
-import javax.swing.UIManager;
+import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -273,6 +262,13 @@ class DebugRandomSourcePanel extends JPanel {
         add(tabbedPane, BorderLayout.CENTER);
 
         JPanel bottomPanel = new JPanel();
+        JButton dumpStackTraceButton = new JButton("Dump stack trace");
+        dumpStackTraceButton.addActionListener(e -> {
+            if (selectedStackTrace >= 0 && selectedStackTrace < DebugRandom.stackTraceById.size()) {
+                DebugRandom.LOGGER.info(DebugRandom.stackTraceById.get(selectedStackTrace));
+            }
+        });
+        bottomPanel.add(dumpStackTraceButton);
         add(bottomPanel, BorderLayout.SOUTH);
     }
 

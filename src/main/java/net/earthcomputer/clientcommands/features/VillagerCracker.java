@@ -134,7 +134,7 @@ public class VillagerCracker {
 
         if (level != null && level.getDayTime() % 24000 < 12000) {
             simulator.onBadRNG("day");
-            ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));
+            ClientCommandHelper.sendHelp(Component.translatable("villagerManip.help.day"));
         }
 
         if (villager != null) {
@@ -248,7 +248,7 @@ public class VillagerCracker {
 
         if (!isResting(targetVillager.level().dayTime())) {
             simulator.onBadRNG("day");
-            ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.day"));
+            ClientCommandHelper.sendHelp(Component.translatable("villagerManip.help.day"));
         } else if (targetVillager.isInWater() && targetVillager.getFluidHeight(FluidTags.WATER) > targetVillager.getFluidJumpThreshold() || targetVillager.isInLava()) {
             simulator.onBadRNG("swim");
         } else if (!targetVillager.getActiveEffects().isEmpty()) {
@@ -266,23 +266,17 @@ public class VillagerCracker {
                 return;
             }
 
-            List<BlockPos> validBedHeadPositions = List.of(blockPos.north(3), blockPos.east(3), blockPos.south(3), blockPos.west(3));
-            List<BlockPos> bedHeadPositions = BlockPos.withinManhattanStream(blockPos, 15, 7, 15).map(BlockPos::new).filter(p -> level.getBlockState(p).is(BlockTags.BEDS) && level.getBlockState(p).getValue(BedBlock.OCCUPIED) == Boolean.FALSE && level.getBlockState(p).getValue(BedBlock.PART) == BedPart.HEAD).toList();
-            Direction bedDirection;
-            if (bedHeadPositions.size() == 1 && validBedHeadPositions.contains(bedHeadPositions.getFirst())) {
-                bedDirection = Direction.Plane.HORIZONTAL.stream().skip(validBedHeadPositions.indexOf(bedHeadPositions.getFirst())).findAny().orElse(null);
-            } else {
+            List<BlockPos> bedHeadPositions = BlockPos.withinManhattanStream(blockPos, 16, 16, 16).map(BlockPos::new).filter(p -> p.distSqr(blockPos) <= 16.0 * 16.0).filter(p -> level.getBlockState(p).is(BlockTags.BEDS) && level.getBlockState(p).getValue(BedBlock.OCCUPIED) == Boolean.FALSE && level.getBlockState(p).getValue(BedBlock.PART) == BedPart.HEAD).toList();
+            if (bedHeadPositions.size() != 1) {
                 simulator.onBadRNG("invalidBedPosition");
                 sendInvalidSetupHelp();
                 return;
             }
 
             for (Direction direction : Direction.Plane.HORIZONTAL) {
-                BlockPos airPos = blockPos.relative(direction);
-                BlockPos trapdoorPos = airPos.above();
-                BlockState airPosState = level.getBlockState(airPos);
+                BlockPos trapdoorPos = blockPos.relative(direction).above();
                 BlockState trapdoorPosState = level.getBlockState(trapdoorPos);
-                if (!((airPosState.isAir() || direction != bedDirection) && trapdoorPosState.is(BlockTags.TRAPDOORS) && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.OPEN) == Boolean.FALSE)) {
+                if (!(trapdoorPosState.is(BlockTags.TRAPDOORS) && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.OPEN) == Boolean.FALSE)) {
                     simulator.onBadRNG("invalidCage");
                     sendInvalidSetupHelp();
                     return;
@@ -293,7 +287,7 @@ public class VillagerCracker {
     }
 
     private static void sendInvalidSetupHelp() {
-        ClientCommandHelper.sendHelp(Component.translatable("villagerManip.help.setup.prefix").append(Component.translatable("villagerManip.help.setup.here").withStyle(ChatFormatting.UNDERLINE).withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://raw.githubusercontent.com/Earthcomputer/clientcommands/refs/heads/fabric/villager_rng_setup.png")))).append(Component.translatable("villagerManip.help.setup.suffix")));
+        ClientCommandHelper.sendHelp(Component.translatable("villagerManip.help.setup", Component.translatable("villagerManip.help.setup.link").withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://raw.githubusercontent.com/Earthcomputer/clientcommands/refs/heads/fabric/dpcs/villager_rng_setup.png")))));
     }
 
     private static void onDisconnect() {

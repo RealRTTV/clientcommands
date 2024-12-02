@@ -321,7 +321,7 @@ public class VillagerRngSimulator {
     }
 
     public void onBadRNG(@Translatable(prefix = "villagerManip.reset.") String reason) {
-        ClientCommandHelper.sendFeedback(Component.translatable("villagerManip.reset", Component.translatable("villagerManip.reset." + reason)).withStyle(ChatFormatting.RED));
+        ClientCommandHelper.sendError(Component.translatable("villagerManip.reset", Component.translatable("villagerManip.reset." + reason)));
         reset();
     }
 
