@@ -1,4 +1,5 @@
 import net.earthcomputer.clientcommands.buildscript.CheckLanguageFilesTask
+import net.earthcomputer.clientcommands.buildscript.GenerateBuildInfoTask
 
 plugins {
 	id 'fabric-loom' version '1.9-SNAPSHOT'
@@ -94,6 +95,10 @@ jar {
 	from("LICENSE")
 }
 
+tasks.register('generateBuildInfo', GenerateBuildInfoTask) {
+	outputFile = new File(temporaryDir, "build_info.json")
+}
+
 processResources {
 	inputs.property "version", project.version
 	inputs.property "mcversion", project.minecraft_version_dependency
@@ -108,6 +113,8 @@ processResources {
 	from(sourceSets.main.resources.srcDirs) {
 		exclude "fabric.mod.json"
 	}
+
+	from generateBuildInfo
 }
 
 java {

@@ -10,6 +10,7 @@ import net.earthcomputer.clientcommands.command.PingCommand;
 import net.earthcomputer.clientcommands.command.VillagerCommand;
 import net.earthcomputer.clientcommands.event.ClientConnectionEvents;
 import net.earthcomputer.clientcommands.event.MoreClientEvents;
+import net.earthcomputer.clientcommands.util.BuildInfo;
 import net.earthcomputer.clientcommands.util.CUtil;
 import net.earthcomputer.clientcommands.util.CombinedMedianEM;
 import net.minecraft.ChatFormatting;
@@ -287,7 +288,17 @@ public class VillagerCracker {
     }
 
     private static void sendInvalidSetupHelp() {
-        ClientCommandHelper.sendHelp(Component.translatable("villagerManip.help.setup", Component.translatable("villagerManip.help.setup.link").withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://raw.githubusercontent.com/Earthcomputer/clientcommands/refs/heads/fabric/dpcs/villager_rng_setup.png")))));
+        ClientCommandHelper.sendHelp(
+            Component.translatable("villagerManip.help.setup",
+                Component.translatable("villagerManip.help.setup.link").withStyle(style -> style
+                    .withUnderlined(true)
+                    .withClickEvent(new ClickEvent(
+                        ClickEvent.Action.OPEN_URL,
+                        "https://github.com/Earthcomputer/clientcommands/blob/%s/docs/villager_rng_setup.png?raw=true".formatted(BuildInfo.INSTANCE.shortCommitHash(10))
+                    ))
+                )
+            )
+        );
     }
 
     private static void onDisconnect() {
