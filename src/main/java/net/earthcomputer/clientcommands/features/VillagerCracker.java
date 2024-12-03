@@ -266,7 +266,7 @@ public class VillagerCracker {
                 return;
             }
 
-            List<BlockPos> bedHeadPositions = BlockPos.withinManhattanStream(blockPos, 16, 16, 16).map(BlockPos::new).filter(p -> p.distSqr(blockPos) <= 16.0 * 16.0).filter(p -> level.getBlockState(p).is(BlockTags.BEDS) && level.getBlockState(p).getValue(BedBlock.OCCUPIED) == Boolean.FALSE && level.getBlockState(p).getValue(BedBlock.PART) == BedPart.HEAD).toList();
+            List<BlockPos> bedHeadPositions = BlockPos.betweenClosedStream(blockPos.offset(-16, -16, -16), blockPos.offset(16, 16, 16)).map(BlockPos::new).filter(p -> p.distSqr(blockPos) <= 16.0 * 16.0).filter(p -> level.getBlockState(p).is(BlockTags.BEDS) && level.getBlockState(p).getValue(BedBlock.OCCUPIED) == Boolean.FALSE && level.getBlockState(p).getValue(BedBlock.PART) == BedPart.HEAD).toList();
             if (bedHeadPositions.size() != 1) {
                 simulator.onBadRNG("invalidBedPosition");
                 sendInvalidSetupHelp();
