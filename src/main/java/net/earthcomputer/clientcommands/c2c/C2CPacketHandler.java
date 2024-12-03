@@ -7,9 +7,12 @@ import com.mojang.logging.LogUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.earthcomputer.clientcommands.c2c.packets.MessageC2CPacket;
+import net.earthcomputer.clientcommands.c2c.packets.PutConnectFourPieceC2CPacket;
 import net.earthcomputer.clientcommands.c2c.packets.PutTicTacToeMarkC2CPacket;
-import net.earthcomputer.clientcommands.c2c.packets.StartTicTacToeGameC2CPacket;
+import net.earthcomputer.clientcommands.c2c.packets.StartTwoPlayerGameC2CPacket;
+import net.earthcomputer.clientcommands.command.ConnectFourCommand;
 import net.earthcomputer.clientcommands.command.ListenCommand;
+import net.earthcomputer.clientcommands.features.TwoPlayerGame;
 import net.earthcomputer.clientcommands.command.TicTacToeCommand;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.ChatFormatting;
@@ -36,6 +39,7 @@ import org.slf4j.Logger;
 import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.UUID;
 
 public class C2CPacketHandler implements C2CPacketListener {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -46,8 +50,9 @@ public class C2CPacketHandler implements C2CPacketListener {
 
     public static final ProtocolInfo<C2CPacketListener> C2C = ProtocolInfoBuilder.<C2CPacketListener, C2CFriendlyByteBuf>clientboundProtocol(ConnectionProtocol.PLAY, builder -> builder
         .addPacket(MessageC2CPacket.ID, MessageC2CPacket.CODEC)
-        .addPacket(StartTicTacToeGameC2CPacket.ID, StartTicTacToeGameC2CPacket.CODEC)
+        .addPacket(StartTwoPlayerGameC2CPacket.ID, StartTwoPlayerGameC2CPacket.CODEC)
         .addPacket(PutTicTacToeMarkC2CPacket.ID, PutTicTacToeMarkC2CPacket.CODEC)
+        .addPacket(PutConnectFourPieceC2CPacket.ID, PutConnectFourPieceC2CPacket.CODEC)
     ).bind(b -> (C2CFriendlyByteBuf) b);
 
     public static final String C2C_PACKET_HEADER = "CCΕNC:";
@@ -72,7 +77,7 @@ public class C2CPacketHandler implements C2CPacketListener {
             throw PUBLIC_KEY_NOT_FOUND_EXCEPTION.create();
         }
         PublicKey key = ppk.data().key();
-        FriendlyByteBuf buf = wrapByteBuf(PacketByteBufs.create(), null);
+        FriendlyByteBuf buf = wrapByteBuf(PacketByteBufs.create(), null, null);
         if (buf == null) {
             return;
         }
@@ -115,7 +120,7 @@ public class C2CPacketHandler implements C2CPacketListener {
         OutgoingPacketFilter.addPacket(packetString);
     }
 
-    public static boolean handleC2CPacket(String content, String sender) {
+    public static boolean handleC2CPacket(String content, String sender, UUID senderUUID) {
         byte[] encrypted = ConversionHelper.BaseUTF8.fromUnicode(content);
         // round down to multiple of 256 bytes
         int length = encrypted.length & ~0xFF;
@@ -152,7 +157,7 @@ public class C2CPacketHandler implements C2CPacketListener {
         if (uncompressed == null) {
             return false;
         }
-        C2CFriendlyByteBuf buf = wrapByteBuf(Unpooled.wrappedBuffer(uncompressed), sender);
+        C2CFriendlyByteBuf buf = wrapByteBuf(Unpooled.wrappedBuffer(uncompressed), sender, senderUUID);
         if (buf == null) {
             return false;
         }
@@ -195,8 +200,8 @@ public class C2CPacketHandler implements C2CPacketListener {
     }
 
     @Override
-    public void onStartTicTacToeGameC2CPacket(StartTicTacToeGameC2CPacket packet) {
-        TicTacToeCommand.onStartTicTacToeGameC2CPacket(packet);
+    public void onStartTwoPlayerGameC2CPacket(StartTwoPlayerGameC2CPacket packet) {
+        TwoPlayerGame.onStartTwoPlayerGame(packet);
     }
 
     @Override
@@ -204,12 +209,17 @@ public class C2CPacketHandler implements C2CPacketListener {
         TicTacToeCommand.onPutTicTacToeMarkC2CPacket(packet);
     }
 
-    public static @Nullable C2CFriendlyByteBuf wrapByteBuf(ByteBuf buf, String sender) {
+    @Override
+    public void onPutConnectFourPieceC2CPacket(PutConnectFourPieceC2CPacket packet) {
+        ConnectFourCommand.onPutConnectFourPieceC2CPacket(packet);
+    }
+
+    public static @Nullable C2CFriendlyByteBuf wrapByteBuf(ByteBuf buf, String sender, UUID senderUUID) {
         ClientPacketListener connection = Minecraft.getInstance().getConnection();
         if (connection == null) {
             return null;
         }
-        return new C2CFriendlyByteBuf(buf, connection.registryAccess(), sender);
+        return new C2CFriendlyByteBuf(buf, connection.registryAccess(), sender, senderUUID);
     }
 
     @Override

@@ -19,7 +19,19 @@ import net.minecraft.world.level.levelgen.RandomSupport;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
-import javax.swing.*;
+import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
+import javax.swing.UIManager;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -269,6 +281,7 @@ class DebugRandomSourcePanel extends JPanel {
             }
         });
         bottomPanel.add(dumpStackTraceButton);
+
         add(bottomPanel, BorderLayout.SOUTH);
     }
 
