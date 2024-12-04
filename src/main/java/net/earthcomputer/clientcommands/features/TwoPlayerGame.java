@@ -47,6 +47,24 @@ public class TwoPlayerGame<T, S extends Screen> {
     public static final TwoPlayerGame<TicTacToeCommand.TicTacToeGame, TicTacToeCommand.TicTacToeGameScreen> TIC_TAC_TOE_GAME_TYPE = register(new TwoPlayerGame<>("commands.ctictactoe.name", "ctictactoe", ResourceLocation.fromNamespaceAndPath("clientcommands", "tictactoe"), (opponent, firstPlayer) -> new TicTacToeCommand.TicTacToeGame(opponent, firstPlayer ? TicTacToeCommand.TicTacToeGame.Mark.CROSS : TicTacToeCommand.TicTacToeGame.Mark.NOUGHT), TicTacToeCommand.TicTacToeGameScreen::new));
     public static final TwoPlayerGame<ConnectFourCommand.ConnectFourGame, ConnectFourCommand.ConnectFourGameScreen > CONNECT_FOUR_GAME_TYPE = register(new TwoPlayerGame<>("commands.cconnectfour.name", "cconnectfour", ResourceLocation.fromNamespaceAndPath("clientcommands", "connectfour"), (opponent, firstPlayer) -> new ConnectFourCommand.ConnectFourGame(opponent, firstPlayer ? ConnectFourCommand.Piece.RED : ConnectFourCommand.Piece.YELLOW), ConnectFourCommand.ConnectFourGameScreen::new));
 
+    private final Component translation;
+    private final String command;
+    private final ResourceLocation id;
+    private final Set<UUID> pendingInvites;
+    private final Map<UUID, T> activeGames;
+    private final GameFactory<T> gameFactory;
+    private final ScreenFactory<T, S> screenFactory;
+
+    TwoPlayerGame(@Translatable String translationKey, String command, ResourceLocation id, GameFactory<T> gameFactory, ScreenFactory<T, S> screenFactory) {
+        this.translation = Component.translatable(translationKey);
+        this.command = command;
+        this.id = id;
+        this.pendingInvites = Collections.newSetFromMap(CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(5)).<UUID, Boolean>build().asMap());
+        this.activeGames = CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(15)).<UUID, T>build().asMap();
+        this.gameFactory = gameFactory;
+        this.screenFactory = screenFactory;
+    }
+
     private static <T, S extends Screen> TwoPlayerGame<T, S> register(TwoPlayerGame<T, S> instance) {
         TYPE_BY_NAME.put(instance.id, instance);
         return instance;
@@ -71,24 +89,6 @@ public class TwoPlayerGame<T, S extends Screen> {
                 game.pendingInvites.clear();
             }
         });
-    }
-
-    private final Component translation;
-    private final String command;
-    private final ResourceLocation id;
-    private final Set<UUID> pendingInvites;
-    private final Map<UUID, T> activeGames;
-    private final GameFactory<T> gameFactory;
-    private final ScreenFactory<T, S> screenFactory;
-
-    TwoPlayerGame(@Translatable String translationKey, String command, ResourceLocation id, GameFactory<T> gameFactory, ScreenFactory<T, S> screenFactory) {
-        this.translation = Component.translatable(translationKey);
-        this.command = command;
-        this.id = id;
-        this.pendingInvites = Collections.newSetFromMap(CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(5)).<UUID, Boolean>build().asMap());
-        this.activeGames = CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(15)).<UUID, T>build().asMap();
-        this.gameFactory = gameFactory;
-        this.screenFactory = screenFactory;
     }
 
     public Component translate() {

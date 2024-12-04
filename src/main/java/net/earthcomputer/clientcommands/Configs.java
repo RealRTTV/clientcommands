@@ -25,13 +25,9 @@ public class Configs {
     @Config(readOnly = true, temporary = true)
     public static PlayerRandCracker.CrackState playerCrackState = PlayerRandCracker.CrackState.UNCRACKED;
 
-    @Config(setter = @Config.Setter("setEnchantingPrediction"), temporary = true)
-    private static boolean enchantingPrediction = false;
-    public static boolean getEnchantingPrediction() {
-        return enchantingPrediction;
-    }
-    public static void setEnchantingPrediction(boolean enchantingPrediction) {
-        Configs.enchantingPrediction = enchantingPrediction;
+    @Config(onChange = "onChangeEnchantingPrediction", temporary = true)
+    public static boolean enchantingPrediction = false;
+    private static void onChangeEnchantingPrediction(boolean oldEnchantingPrediction, boolean enchantingPrediction) {
         if (enchantingPrediction) {
             ServerBrandManager.rngWarning();
         } else {
@@ -54,13 +50,9 @@ public class Configs {
         }
     }
 
-    @Config(setter = @Config.Setter("setFishingManipulation"), temporary = true, condition = "conditionLessThan1_20")
-    private static FishingManipulation fishingManipulation = FishingManipulation.OFF;
-    public static FishingManipulation getFishingManipulation() {
-        return fishingManipulation;
-    }
-    public static void setFishingManipulation(FishingManipulation fishingManipulation) {
-        Configs.fishingManipulation = fishingManipulation;
+    @Config(onChange = "onChangeFishingManipulation", temporary = true, condition = "conditionLessThan1_20")
+    public static FishingManipulation fishingManipulation = FishingManipulation.OFF;
+    private static void onChangeFishingManipulation(FishingManipulation oldFishingManipulation, FishingManipulation fishingManipulation) {
         if (fishingManipulation.isEnabled()) {
             ServerBrandManager.rngWarning();
         } else {
@@ -123,13 +115,9 @@ public class Configs {
         Configs.minEnchantLevels = Math.min(Configs.minEnchantLevels, Configs.maxEnchantLevels);
     }
 
-    @Config(setter = @Config.Setter("setChorusManipulation"), temporary = true)
-    private static boolean chorusManipulation = false;
-    public static boolean getChorusManipulation() {
-        return chorusManipulation;
-    }
-    public static void setChorusManipulation(boolean chorusManipulation) {
-        Configs.chorusManipulation = chorusManipulation;
+    @Config(onChange = "onChangeChorusManipulation", temporary = true)
+    public static boolean chorusManipulation = false;
+    public static void onChangeChorusManipulation(boolean oldChorusManipulation, boolean chorusManipulation) {
         if (chorusManipulation) {
             ServerBrandManager.rngWarning();
             ChorusManipulation.onChorusManipEnabled();

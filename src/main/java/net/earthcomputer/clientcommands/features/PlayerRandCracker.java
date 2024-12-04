@@ -162,7 +162,7 @@ public class PlayerRandCracker {
                 }
             }
 
-            if (Configs.getChorusManipulation() && stack.getItem() == Items.CHORUS_FRUIT) {
+            if (Configs.chorusManipulation && stack.getItem() == Items.CHORUS_FRUIT) {
                 ChorusManipulation.onEat(pos, particleCount, itemUseTimeLeft);
                 if (particleCount == 16) {
                     //Consumption randoms
