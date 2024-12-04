@@ -124,7 +124,7 @@ public class VillagerCommand {
             checkStackSize(second, secondCount);
         }
 
-        if (!Configs.getVillagerManipulation()) {
+        if (!Configs.villagerManipulation) {
             throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
         }
 
@@ -158,7 +158,7 @@ public class VillagerCommand {
     }
 
     private static int listGoals(FabricClientCommandSource source) throws CommandSyntaxException {
-        if (!Configs.getVillagerManipulation()) {
+        if (!Configs.villagerManipulation) {
             throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
         }
 
@@ -175,7 +175,7 @@ public class VillagerCommand {
     }
 
     private static int removeGoal(FabricClientCommandSource source, int index) throws CommandSyntaxException {
-        if (!Configs.getVillagerManipulation()) {
+        if (!Configs.villagerManipulation) {
             throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
         }
 
@@ -190,7 +190,7 @@ public class VillagerCommand {
     }
 
     private static int setVillagerTarget(@Nullable Entity target) throws CommandSyntaxException {
-        if (!Configs.getVillagerManipulation()) {
+        if (!Configs.villagerManipulation) {
             throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
         }
 
@@ -208,7 +208,7 @@ public class VillagerCommand {
     }
 
     private static int getClockPos() throws CommandSyntaxException {
-        if (!Configs.getVillagerManipulation()) {
+        if (!Configs.villagerManipulation) {
             throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
         }
 
@@ -222,7 +222,7 @@ public class VillagerCommand {
     }
 
     private static int setClockPos(FabricClientCommandSource ctx, BlockPos pos) throws CommandSyntaxException {
-        if (!Configs.getVillagerManipulation()) {
+        if (!Configs.villagerManipulation) {
             throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
         }
 
@@ -237,7 +237,7 @@ public class VillagerCommand {
     }
 
     private static int start(boolean levelUp) throws CommandSyntaxException {
-        if (!Configs.getVillagerManipulation()) {
+        if (!Configs.villagerManipulation) {
             throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
         }
 

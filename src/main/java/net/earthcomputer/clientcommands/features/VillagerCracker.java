@@ -186,7 +186,7 @@ public class VillagerCracker {
     private static void onTimeSync() {
         long now = System.nanoTime();
 
-        if (Configs.getVillagerManipulation() && clockPos != null && !isNewClock && clockTicksSinceLastTimeSync != 20) {
+        if (Configs.villagerManipulation && clockPos != null && !isNewClock && clockTicksSinceLastTimeSync != 20) {
             if (now - lastClockRateWarning >= 60_000_000_000L) {
                 if (clockTicksSinceLastTimeSync < 20) {
                     ClientCommandHelper.sendHelp(Component.translatable("commands.cvillager.help.tooSlow"));

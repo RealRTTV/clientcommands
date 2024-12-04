@@ -173,13 +173,9 @@ public class Configs {
         Configs.minimumReplyDelaySeconds = Math.clamp(minimumReplyDelaySeconds, 0.0f, ReplyCommand.MAXIMUM_REPLY_DELAY_SECONDS);
     }
 
-    @Config(setter = @Config.Setter("setVillagerManipulation"), temporary = true)
-    private static boolean villagerManipulation = false;
-    public static boolean getVillagerManipulation() {
-        return villagerManipulation;
-    }
-    public static void setVillagerManipulation(boolean villagerManipulation) {
-        Configs.villagerManipulation = villagerManipulation;
+    @Config(onChange = "onChangeVillagerManipulation", temporary = true)
+    public static boolean villagerManipulation = false;
+    public static void onChangeVillagerManipulation(boolean oldVillagerManipulation, boolean villagerManipulation) {
         if (villagerManipulation) {
             ServerBrandManager.rngWarning();
         } else {

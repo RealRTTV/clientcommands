@@ -249,7 +249,7 @@ public class FishingCracker {
     }
 
     public static boolean canManipulateFishing() {
-        return Configs.getFishingManipulation().isEnabled() && !goals.isEmpty();
+        return Configs.fishingManipulation.isEnabled() && !goals.isEmpty();
     }
 
     private static void handleFishingRodThrow(ItemStack stack) {
@@ -266,7 +266,7 @@ public class FishingCracker {
         synchronized (STATE_LOCK) {
             state = State.NOT_MANIPULATING;
 
-            if (canManipulateFishing() && Configs.getFishingManipulation() == Configs.FishingManipulation.AFK) {
+            if (canManipulateFishing() && Configs.fishingManipulation == Configs.FishingManipulation.AFK) {
                 state = State.WAITING_FOR_RETRHOW;
                 TaskManager.addNonConflictingTask("cfishRethrow", new LongTask() {
                     private int counter;
@@ -339,7 +339,7 @@ public class FishingCracker {
             }
         });
         MoreClientEvents.TIME_SYNC_ON_NETWORK_THREAD.register(packet -> {
-            if (Configs.getFishingManipulation().isEnabled()) {
+            if (Configs.fishingManipulation.isEnabled()) {
                 onTimeSync();
             }
         });
@@ -594,7 +594,7 @@ public class FishingCracker {
                     new ServerboundUseItemPacket(InteractionHand.MAIN_HAND, 0, player.getYRot(), player.getXRot()),
                     () -> {
                         oldFishingHook[0] = player.fishing;
-                        return Configs.getFishingManipulation().isEnabled() && state == State.ASYNC_WAITING_FOR_FISH;
+                        return Configs.fishingManipulation.isEnabled() && state == State.ASYNC_WAITING_FOR_FISH;
                     },
                     () -> {
                         if (player == Minecraft.getInstance().player) {
