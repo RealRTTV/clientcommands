@@ -42,6 +42,9 @@ accessible field net/minecraft/client/gui/components/EditBox maxLength I
 accessible class net/minecraft/client/renderer/RenderType$CompositeState
 accessible class net/minecraft/client/renderer/RenderStateShard$LineStateShard
 
+# Villager Manipulation
+accessible method net/minecraft/client/gui/screens/inventory/AbstractContainerScreen slotClicked (Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ClickType;)V
+
 # RNG Events
 accessible method net/minecraft/world/entity/Entity isInvulnerableToBase (Lnet/minecraft/world/damagesource/DamageSource;)Z
 accessible field net/minecraft/world/entity/LivingEntity lastHurt F

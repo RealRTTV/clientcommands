@@ -16,6 +16,7 @@ import net.earthcomputer.clientcommands.util.CombinedMedianEM;
 import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.MerchantScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
@@ -26,6 +27,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundAddExperienceOrbPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
 import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -36,6 +38,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
@@ -76,14 +79,16 @@ public class VillagerCracker {
     public static VillagerRngSimulator.SurroundingOffers surroundingOffers = null;
     private static int clockTicksSinceLastTimeSync = 0;
     private static long lastClockRateWarning = 0;
-    public static boolean hasClickedVillager = false;
+    public static boolean hasSentInteractionPackets = false;
+    public static boolean hasQueuedInteractionPackets = false;
+    public static boolean isFirstLevelCrack = true;
 
     private static long lastTimeSyncTime;
     public static int serverMspt = SharedConstants.MILLIS_PER_TICK;
     public static int magicMillisecondCorrection = 25;
     public static int maxTicksBefore = 10;
     public static int maxTicksAfter = 10;
-    public static final CombinedMedianEM combinedMedianEM = new CombinedMedianEM();
+    public static CombinedMedianEM combinedMedianEM = new CombinedMedianEM();
 
     static {
         ClientConnectionEvents.DISCONNECT.register(VillagerCracker::onDisconnect);
@@ -134,7 +139,7 @@ public class VillagerCracker {
         ClientLevel level = Minecraft.getInstance().level;
 
         if (level != null && level.getDayTime() % 24000 < 12000) {
-            simulator.onBadRNG("day");
+            simulator.onBadSetup("day");
             ClientCommandHelper.sendHelp(Component.translatable("villagerManip.help.day"));
         }
 
@@ -170,7 +175,7 @@ public class VillagerCracker {
         } else if (soundEvent == SoundEvents.GENERIC_SPLASH) {
             simulator.onSplashSoundPlayed(packet.getPitch());
         } else if (BuiltInRegistries.SOUND_EVENT.getKey(soundEvent).getPath().startsWith("item.armor.equip_")) {
-            simulator.onBadRNG("itemEquipped");
+            simulator.onBadSetup("itemEquipped");
         }
     }
 
@@ -212,50 +217,98 @@ public class VillagerCracker {
         }
 
         if (simulator.isAtLeastPartiallyCracked()) {
-            checkVillagerSetup();
+            checkVillagerStateSetup();
         }
 
         simulator.simulateTick();
 
-        if (simulator.isCracked() && isRunning() && !hasClickedVillager) {
-            int millisecondsUntilInteract = simulator.getTicksRemaining() * serverMspt - PingCommand.getLocalPing() + magicMillisecondCorrection;
-            if (millisecondsUntilInteract < 200) {
-                LocalPlayer oldPlayer = Minecraft.getInstance().player;
-                assert oldPlayer != null;
+        if (isRunning() && checkVillagerWaitingStateSetup() && !hasQueuedInteractionPackets && simulator.isCracked()) {
+            trySendInteraction();
+        }
+    }
+
+    private static void trySendInteraction() {
+        final Minecraft mc = Minecraft.getInstance();
+        final Villager targetVillager = getVillager();
+        final long nanoTime = System.nanoTime();
+        int millisecondsUntilInteract = simulator.getTicksRemaining() * serverMspt - PingCommand.getLocalPing() + magicMillisecondCorrection;
+        if (millisecondsUntilInteract < 200) {
+            LocalPlayer oldPlayer = mc.player;
+            assert oldPlayer != null;
+
+            if (isFirstLevelCrack) {
                 CUtil.sendAtPreciseTime(
-                    System.nanoTime() + millisecondsUntilInteract * 1_000_000L,
+                    nanoTime + millisecondsUntilInteract * 1_000_000L,
                     ServerboundInteractPacket.createInteractionPacket(targetVillager, false, InteractionHand.MAIN_HAND),
                     VillagerCracker::isRunning,
                     () -> {
-                        LocalPlayer player = Minecraft.getInstance().player;
+                        LocalPlayer player = mc.player;
+                        if (player == oldPlayer) {
+                            player.swing(InteractionHand.MAIN_HAND);
+                        }
+                        hasSentInteractionPackets = true;
+                    }
+                );
+            } else {
+                // todo: could potentially still break if a "hrmm" happens between this and the interaction
+                if (!(mc.screen instanceof MerchantScreen screen)) {
+                    simulator.onBadSetup("wrongScreen");
+                    return;
+                }
+
+                screen.slotClicked(screen.getMenu().slots.get(2), 2, 0, ClickType.QUICK_MOVE);
+
+                CUtil.sendAtPreciseTime(
+                    nanoTime + millisecondsUntilInteract * 1_000_000L,
+                    new ServerboundContainerClosePacket(oldPlayer.containerMenu.containerId),
+                    VillagerCracker::isRunning,
+                    () -> {
+                        LocalPlayer player = mc.player;
+                        player.clientSideCloseContainer();
+                        hasSentInteractionPackets = true;
+                    }
+                );
+
+                // debug
+                CUtil.sendAtPreciseTime(
+                    nanoTime + (millisecondsUntilInteract + 41L * serverMspt) * 1_000_000L,
+                    ServerboundInteractPacket.createInteractionPacket(targetVillager, false, InteractionHand.MAIN_HAND),
+                    VillagerCracker::isRunning,
+                    () -> {
+                        LocalPlayer player = mc.player;
                         if (player == oldPlayer) {
                             player.swing(InteractionHand.MAIN_HAND);
                         }
                     }
                 );
-                simulator.resetWaitingState();
-                hasClickedVillager = true;
             }
+
+            simulator.resetWaitingState();
+            hasQueuedInteractionPackets = true;
         }
     }
 
-    private static void checkVillagerSetup() {
+    private static boolean checkVillagerStateSetup() {
         final Minecraft mc = Minecraft.getInstance();
         final Villager targetVillager = getVillager();
 
         if (targetVillager == null) {
-            return;
+            return false;
         }
 
         if (!isResting(targetVillager.level().dayTime())) {
-            simulator.onBadRNG("day");
+            simulator.onBadSetup("day");
             ClientCommandHelper.sendHelp(Component.translatable("villagerManip.help.day"));
+            return false;
         } else if (targetVillager.isInWater() && targetVillager.getFluidHeight(FluidTags.WATER) > targetVillager.getFluidJumpThreshold() || targetVillager.isInLava()) {
-            simulator.onBadRNG("swim");
+            simulator.onBadSetup("swim");
+            return false;
         } else if (!targetVillager.getActiveEffects().isEmpty()) {
-            simulator.onBadRNG("potion");
+            simulator.onBadSetup("potion");
+            return false;
         } else if (!mc.player.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {
-            simulator.onBadRNG("itemInMainHand");
+            simulator.onBadSetup("itemInMainHand");
+            return false;
         } else {
             Level level = targetVillager.level();
             Vec3 pos = targetVillager.position();
@@ -263,28 +316,53 @@ public class VillagerCracker {
 
             int villagersNearVillager = level.getEntities(EntityTypeTest.forExactClass(Villager.class), AABB.ofSize(pos, 10.0, 10.0, 10.0), entity -> entity.position().distanceToSqr(pos) <= 5.0 * 5.0).size();
             if (villagersNearVillager > 1) {
-                simulator.onBadRNG("gossip");
-                return;
+                simulator.onBadSetup("gossip");
+                return false;
             }
 
             List<BlockPos> bedHeadPositions = BlockPos.betweenClosedStream(blockPos.offset(-16, -16, -16), blockPos.offset(16, 16, 16)).map(BlockPos::new).filter(p -> p.distSqr(blockPos) <= 16.0 * 16.0).filter(p -> level.getBlockState(p).is(BlockTags.BEDS) && level.getBlockState(p).getValue(BedBlock.OCCUPIED) == Boolean.FALSE && level.getBlockState(p).getValue(BedBlock.PART) == BedPart.HEAD).toList();
             if (bedHeadPositions.size() != 1) {
-                simulator.onBadRNG("invalidBedPosition");
+                simulator.onBadSetup("invalidBedPosition");
                 sendInvalidSetupHelp();
-                return;
+                return false;
             }
 
             for (Direction direction : Direction.Plane.HORIZONTAL) {
                 BlockPos trapdoorPos = blockPos.relative(direction).above();
                 BlockState trapdoorPosState = level.getBlockState(trapdoorPos);
                 if (!(trapdoorPosState.is(BlockTags.TRAPDOORS) && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.HALF) == Half.TOP && trapdoorPosState.getValue(TrapDoorBlock.OPEN) == Boolean.FALSE)) {
-                    simulator.onBadRNG("invalidCage");
+                    simulator.onBadSetup("invalidCage");
                     sendInvalidSetupHelp();
-                    return;
+                    return false;
                 }
             }
-
         }
+
+        return true;
+    }
+
+    private static boolean checkVillagerWaitingStateSetup() {
+        if (!Configs.villagerManipulation) {
+            simulator.onBadSetup("manipInactive");
+            stopRunning();
+            return false;
+        }
+
+        Villager targetVillager = VillagerCracker.getVillager();
+        if (targetVillager == null || !VillagerCracker.simulator.isCracked()) {
+            simulator.onBadSetup("uncrackedMisc");
+            stopRunning();
+            return false;
+        }
+
+        VillagerProfession profession = targetVillager.getVillagerData().getProfession();
+        if (profession == VillagerProfession.NONE) {
+            simulator.onBadSetup("professionLost");
+            stopRunning();
+            return false;
+        }
+
+        return true;
     }
 
     private static void sendInvalidSetupHelp() {
@@ -351,13 +429,14 @@ public class VillagerCracker {
             return;
         }
 
+        // potentially not required?
         if (player.distanceTo(villager) > 2.0) {
-            simulator.onBadRNG("distance");
+            simulator.onBadSetup("distance");
             stopRunning();
             return;
         }
 
-        if (isRunning()) {
+        if ((VillagerCracker.isFirstLevelCrack && isRunning()) || (!VillagerCracker.isFirstLevelCrack && VillagerCracker.hasSentInteractionPackets)) {
             int[] possibleTicksAhead = possibleTicksAhead(actualOffersList.toArray(Offer[]::new), surroundingOffers);
             // chop possible ticks ahead into a limited reasonable range
             final int consideredTickRange = 21;
@@ -397,11 +476,17 @@ public class VillagerCracker {
 
             simulator.reset();
             stopRunning();
+            hasQueuedInteractionPackets = false;
+            hasSentInteractionPackets = false;
+            isFirstLevelCrack = true;
         }
     }
 
     public static void reset() {
         simulator.reset();
+        isFirstLevelCrack = true;
+        hasSentInteractionPackets = false;
+        hasQueuedInteractionPackets = false;
         clockPos = null;
         villagerUuid = null;
         cachedVillager = new WeakReference<>(null);

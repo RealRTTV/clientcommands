@@ -1,6 +1,5 @@
 package net.earthcomputer.clientcommands.mixin.commands.villager;
 
-import net.earthcomputer.clientcommands.command.VillagerCommand;
 import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.MerchantScreen;

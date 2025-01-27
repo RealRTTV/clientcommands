@@ -254,7 +254,7 @@ public class VillagerRngSimulator {
     public void onAmbientSoundPlayed(float pitch) {
         boolean justReset = false;
         if (totalAmbientSounds == 2 && !madeSound) {
-            onBadRNG("ambient");
+            onBadSetup("ambient");
             justReset = true;
         }
 
@@ -320,7 +320,7 @@ public class VillagerRngSimulator {
         }
     }
 
-    public void onBadRNG(@Translatable(prefix = "villagerManip.reset.") String reason) {
+    public void onBadSetup(@Translatable(prefix = "villagerManip.reset.") String reason) {
         ClientCommandHelper.sendError(Component.translatable("villagerManip.reset", Component.translatable("villagerManip.reset." + reason)));
         reset();
     }
@@ -335,7 +335,7 @@ public class VillagerRngSimulator {
             }
             float simulatedPitch = (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f;
             if (pitch != simulatedPitch) {
-                onBadRNG("no");
+                onBadSetup("no");
             } else {
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             }
@@ -350,7 +350,7 @@ public class VillagerRngSimulator {
             ambientSoundTime = -80;
             float simulatedPitch = (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f;
             if (pitch != simulatedPitch) {
-                onBadRNG("yes");
+                onBadSetup("yes");
             } else {
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             }
@@ -372,7 +372,7 @@ public class VillagerRngSimulator {
 
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             } else {
-                onBadRNG("splash");
+                onBadSetup("splash");
             }
         }
     }
@@ -386,7 +386,7 @@ public class VillagerRngSimulator {
             boolean leveledUp = value > 3 + 3;
             if (leveledUp) simulatedValue += 5;
             if (value != simulatedValue) {
-                onBadRNG("xpOrb");
+                onBadSetup("xpOrb");
             } else {
                 ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.inSync", Long.toHexString(random.getSeed())).withStyle(ChatFormatting.GREEN), 100);
             }
@@ -412,7 +412,7 @@ public class VillagerRngSimulator {
                 VillagerCracker.Offer offer = offerSimulator.anyOffersMatch(listings, targetVillager, predicate);
                 if (offer != null) {
                     // we do the calls before this ticks processing so that since with 0ms ping, the server reads it next tick
-                    return new BruteForceResult(ticksPassed, offer);
+                    return new BruteForceResult(ticksPassed, offer, offerSimulator.random.getSeed());
                 }
                 branchedSimulator.simulateTick();
             }
@@ -530,7 +530,7 @@ public class VillagerRngSimulator {
         }
     }
 
-    public record BruteForceResult(int ticksPassed, VillagerCracker.Offer offer) {
+    public record BruteForceResult(int ticksPassed, VillagerCracker.Offer offer, long seed) {
     }
 
     public record SurroundingOffers(List<VillagerCracker.Offer[]> before, VillagerCracker.Offer[] middle, List<VillagerCracker.Offer[]> after) {

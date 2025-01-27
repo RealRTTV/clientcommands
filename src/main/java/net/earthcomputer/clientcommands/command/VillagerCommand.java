@@ -14,6 +14,7 @@ import net.earthcomputer.clientcommands.features.VillagerRngSimulator;
 import net.earthcomputer.clientcommands.task.SimpleTask;
 import net.earthcomputer.clientcommands.task.TaskManager;
 import net.earthcomputer.clientcommands.util.CUtil;
+import net.earthcomputer.clientcommands.util.CombinedMedianEM;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.critereon.MinMaxBounds;
@@ -53,6 +54,7 @@ public class VillagerCommand {
     private static final SimpleCommandExceptionType NOT_LEVEL_1_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.notLevel1"));
     private static final SimpleCommandExceptionType NO_GOALS_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.listGoals.noGoals"));
     private static final SimpleCommandExceptionType ALREADY_RUNNING_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.alreadyRunning"));
+    private static final SimpleCommandExceptionType CANNOT_MODIFY_GOALS_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.cannotModifyGoals"));
     private static final Dynamic2CommandExceptionType INVALID_GOAL_INDEX_EXCEPTION = new Dynamic2CommandExceptionType((index, length) -> Component.translatable("commands.cvillager.removeGoal.invalidIndex", index, length));
     private static final Dynamic2CommandExceptionType ITEM_OVERSTACKED_EXCEPTION = new Dynamic2CommandExceptionType((item, stackSize) -> Component.translatable("arguments.item.overstacked", item, stackSize));
     private static final SimpleCommandExceptionType NEED_VILLAGER_MANIPULATION_EXCEPTION = new SimpleCommandExceptionType(Component.translatable("commands.cvillager.needVillagerManipulation")
@@ -104,7 +106,13 @@ public class VillagerCommand {
                 .then(literal("first-level")
                     .executes(ctx -> start(false)))
                 .then(literal("next-level")
-                    .executes(ctx -> start(true)))));
+                    .executes(ctx -> start(true))))
+            .then(literal("reset")
+                .executes(ctx -> reset()))
+            .then(literal("reset-correction")
+                .executes(ctx -> resetCorrection(-25))
+                .then(argument("correction", integer())
+                    .executes(ctx -> resetCorrection(getInteger(ctx, "correction"))))));
     }
 
     private static int addGoal(
@@ -126,6 +134,10 @@ public class VillagerCommand {
 
         if (!Configs.villagerManipulation) {
             throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
+        }
+
+        if (VillagerCracker.isRunning()) {
+            throw CANNOT_MODIFY_GOALS_EXCEPTION.create();
         }
 
         String firstString = first == null ? null : first.string() + " " + CUtil.boundsToString(firstCount);
@@ -177,6 +189,10 @@ public class VillagerCommand {
     private static int removeGoal(FabricClientCommandSource source, int index) throws CommandSyntaxException {
         if (!Configs.villagerManipulation) {
             throw NEED_VILLAGER_MANIPULATION_EXCEPTION.create();
+        }
+
+        if (VillagerCracker.isRunning()) {
+            throw CANNOT_MODIFY_GOALS_EXCEPTION.create();
         }
 
         index = index - 1;
@@ -268,7 +284,9 @@ public class VillagerCommand {
         int crackedLevel = levelUp ? currentLevel + 1 : currentLevel;
 
         VillagerTrades.ItemListing[] listings = VillagerTrades.TRADES.get(profession).getOrDefault(crackedLevel, new VillagerTrades.ItemListing[0]);
-        int adjustmentTicks = levelUp ? -40 : 0;
+        // 39 ticks ahead instead of 40 because the two trade xp calls act as one effective tick.
+        // this means we have to do our trades for one tick into the future because we'll be re-adjusting for this
+        int adjustmentTicks = levelUp ? -39 : 0;
         VillagerRngSimulator.BruteForceResult result = VillagerCracker.simulator.bruteForceOffers(listings, levelUp ? 240 : 10, Configs.maxVillagerManipulationWaitTicks, offer -> VillagerCracker.goals.stream().anyMatch(goal -> goal.matches(offer)));
         if (result == null) {
             ClientCommandHelper.addOverlayMessage(Component.translatable("commands.cvillager.bruteForce.failed", Configs.maxVillagerManipulationWaitTicks).withStyle(ChatFormatting.RED), 100);
@@ -285,9 +303,12 @@ public class VillagerCommand {
             price = displayText(offer.first(), false) + " + " + displayText(offer.second(), false);
         }
         ClientCommandHelper.sendFeedback(Component.translatable("commands.cvillager.bruteForce.success", displayText(offer.result(), false), price, ticks).withStyle(ChatFormatting.GREEN));
+        System.out.println("Expected seed: " + Long.toHexString(result.seed()));
         VillagerCracker.targetOffer = offer;
         VillagerCracker.surroundingOffers = surroundingOffers;
-        VillagerCracker.hasClickedVillager = false;
+        VillagerCracker.hasQueuedInteractionPackets = false;
+        VillagerCracker.hasSentInteractionPackets = false;
+        VillagerCracker.isFirstLevelCrack = !levelUp;
         VillagerCracker.simulator.setTicksUntilInteract(ticks);
         TaskManager.addTask("cvillagerWaiting", new SimpleTask() {
             @Override
@@ -309,6 +330,19 @@ public class VillagerCommand {
             }
         });
 
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int reset() {
+        VillagerCracker.reset();
+        ClientCommandHelper.sendFeedback("commands.cvillager.reset");
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int resetCorrection(int correction) {
+        VillagerCracker.combinedMedianEM = new CombinedMedianEM();
+        VillagerCracker.magicMillisecondCorrection = correction;
+        ClientCommandHelper.sendFeedback("commands.cvillager.resetCorrection", correction);
         return Command.SINGLE_SUCCESS;
     }
 
