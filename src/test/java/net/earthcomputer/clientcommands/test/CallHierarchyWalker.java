@@ -33,14 +33,18 @@ public abstract sealed class CallHierarchyWalker {
     private final Set<ReferencesFinder.OwnerNameAndDesc> methodsToRecurseThrough = new HashSet<>();
     // the reference <- referenced-from edges that have already been visited, used to prevent infinite recursion
     private final Set<Pair<ReferencesFinder.OwnerNameAndDesc, ReferencesFinder.OwnerNameAndDesc>> visitedEdges = new HashSet<>();
-    private String runtimeOwnerType = "java/lang/Object";
+    String runtimeOwnerType = "java/lang/Object";
 
     public static CallHierarchyWalker fromField(String owner, String name, String desc) {
         return new Field(owner, name, desc);
     }
 
     public static CallHierarchyWalker fromMethod(String owner, String name, String desc) {
-        return new Method(owner, name, desc);
+        return new Method(owner, name, desc, -1);
+    }
+
+    public static CallHierarchyWalker fromMethod(String owner, String name, String desc, int ownerArgIndex) {
+        return new Method(owner, name, desc, ownerArgIndex);
     }
 
     public CallHierarchyWalker recurseThrough(String owner, String name, String desc) {
@@ -239,21 +243,28 @@ public abstract sealed class CallHierarchyWalker {
         private final String owner;
         private final String name;
         private final String desc;
+        private final int ownerArgIndex;
 
-        private Method(String owner, String name, String desc) {
+        private Method(String owner, String name, String desc, int ownerArgIndex) {
             this.owner = owner;
             this.name = name;
             this.desc = desc;
+            this.ownerArgIndex = ownerArgIndex;
         }
 
         @Override
         public void walk(ReferenceConsumer referenceConsumer) {
             int argumentCount = Type.getArgumentCount(desc);
+            if (ownerArgIndex >= argumentCount) {
+                throw new IllegalArgumentException("ownerArgIndex (" + ownerArgIndex + ") >= argumentCount (" + argumentCount + ")");
+            }
+            int stackDepth = argumentCount - 1 - ownerArgIndex;
+
             handleReferences(
                 List.of(new ReferencesFinder.OwnerNameAndDesc(owner, name, desc)),
                 finder.findMethodReferences(owner, name, desc),
-                insn -> ((MethodInsnNode) insn).owner,
-                insn -> insn.getOpcode() == Opcodes.INVOKESTATIC ? -1 : argumentCount,
+                insn -> ownerArgIndex == -1 ? ((MethodInsnNode) insn).owner : runtimeOwnerType,
+                insn -> ownerArgIndex == -1 && insn.getOpcode() == Opcodes.INVOKESTATIC ? -1 : stackDepth,
                 (containingClass, method) -> finder.findCallsToMethodInMethod(containingClass, method, owner, name, desc),
                 referenceConsumer
             );

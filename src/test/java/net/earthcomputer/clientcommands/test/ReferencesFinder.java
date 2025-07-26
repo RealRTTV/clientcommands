@@ -15,6 +15,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -104,6 +105,13 @@ public final class ReferencesFinder {
             }
         }
         return false;
+    }
+
+    @Nullable
+    public ClassNode getClassNode(String className) {
+        ClassNode classNode = new ClassNode();
+        boolean exists = getClassData(className, classNode, ClassReader.SKIP_FRAMES);
+        return exists ? classNode : null;
     }
 
     // should only be called while indexing!

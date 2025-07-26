@@ -39,6 +39,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAndEnchantmentsPredicateArgument.ItemAndEnchantmentsPredicate> {
 
@@ -51,6 +52,8 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
     private Predicate<Item> itemPredicate = item -> true;
     private BiPredicate<Item, Holder<Enchantment>> enchantmentPredicate = (item, ench) -> true;
     private boolean constrainMaxLevel = false;
+    @Nullable
+    private String suffix;
 
     private ItemAndEnchantmentsPredicateArgument(HolderLookup.Provider holderLookupProvider) {
         this.enchantmentLookup = holderLookupProvider.lookupOrThrow(Registries.ENCHANTMENT);
@@ -72,6 +75,11 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
 
     public ItemAndEnchantmentsPredicateArgument constrainMaxLevel() {
         this.constrainMaxLevel = true;
+        return this;
+    }
+
+    public ItemAndEnchantmentsPredicateArgument withSuffix(String suffix) {
+        this.suffix = suffix;
         return this;
     }
 
@@ -159,9 +167,10 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
             if (item != stack.getItem() && (item != Items.BOOK || stack.getItem() != Items.ENCHANTED_BOOK)) {
                 return false;
             }
-            List<EnchantmentInstance> enchantments = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).entrySet().stream()
-                .map(entry -> new EnchantmentInstance(entry.getKey(), entry.getIntValue()))
-                .toList();
+            List<EnchantmentInstance> enchantments = Stream.concat(
+                stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).entrySet().stream(),
+                stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY).entrySet().stream()
+            ).map(entry -> new EnchantmentInstance(entry.getKey(), entry.getIntValue())).toList();
             return predicate.test(enchantments);
         }
     }
@@ -220,6 +229,10 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
                 return false;
             }
 
+            if (option == Option.SUFFIX) {
+                return false;
+            }
+
             boolean suggest = reader.canRead();
             if (option == Option.EXACT) {
                 exact = true;
@@ -256,6 +269,7 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
             WITHOUT,
             EXACT,
             ORDERED,
+            SUFFIX,
         }
 
         @Nullable
@@ -267,7 +281,7 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
                 case "without" -> Option.WITHOUT;
                 case "exactly" -> exact ? null : Option.EXACT;
                 case "ordered" -> ordered || MultiVersionCompat.INSTANCE.getProtocolVersion() >= MultiVersionCompat.V1_21 ? null : Option.ORDERED;
-                default -> null;
+                default -> option.equals(suffix) ? Option.SUFFIX : null;
             };
         }
 
@@ -450,6 +464,9 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
                 }
                 if (!ordered && MultiVersionCompat.INSTANCE.getProtocolVersion() < MultiVersionCompat.V1_21) {
                     validOptions.add("ordered");
+                }
+                if (suffix != null) {
+                    validOptions.add(suffix);
                 }
                 SharedSuggestionProvider.suggest(validOptions, builder);
                 suggestions.add(builder);

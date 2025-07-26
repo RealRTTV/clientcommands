@@ -9,6 +9,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 public class WithStringArgument<T> implements ArgumentType<WithStringArgument.Result<T>> {
 
@@ -45,5 +46,9 @@ public class WithStringArgument<T> implements ArgumentType<WithStringArgument.Re
         return delegate.getExamples();
     }
 
-    public record Result<T>(String string, T value) {}
+    public record Result<T>(String string, T value) {
+        public <U> Result<U> map(Function<? super T, ? extends U> mapper) {
+            return new Result<>(string, mapper.apply(value));
+        }
+    }
 }

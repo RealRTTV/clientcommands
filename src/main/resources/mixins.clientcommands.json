@@ -3,6 +3,7 @@
   "package": "net.earthcomputer.clientcommands.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "VillagerMixin",
     "commands.enchant.EnchantmentScreenMixin",
     "commands.findblock.LevelChunkMixin",
     "commands.fish.FishingHookMixin",
@@ -74,6 +75,8 @@
     "commands.glow.LivingEntityRenderStateMixin",
     "commands.reply.ClientPacketListenerMixin",
     "commands.snap.MinecraftMixin",
+    "commands.villager.ClientPacketListenerMixin",
+    "commands.villager.MerchantScreenMixin",
     "dataqueryhandler.ClientPacketListenerMixin",
     "events.ClientPacketListenerMixin",
     "events.LevelRendererMixin",

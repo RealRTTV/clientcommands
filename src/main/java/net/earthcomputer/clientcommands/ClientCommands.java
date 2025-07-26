@@ -187,6 +187,7 @@ public class ClientCommands implements ClientModInitializer {
         UuidCommand.register(dispatcher);
         VarCommand.register(dispatcher);
         WaypointCommand.register(dispatcher);
+        VillagerCommand.register(dispatcher, context);
         WeatherCommand.register(dispatcher);
         WhisperEncryptedCommand.register(dispatcher);
         WikiCommand.register(dispatcher);

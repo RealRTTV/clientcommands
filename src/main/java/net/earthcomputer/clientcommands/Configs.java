@@ -10,6 +10,7 @@ import net.earthcomputer.clientcommands.features.EnchantmentCracker;
 import net.earthcomputer.clientcommands.features.FishingCracker;
 import net.earthcomputer.clientcommands.features.PlayerRandCracker;
 import net.earthcomputer.clientcommands.features.ServerBrandManager;
+import net.earthcomputer.clientcommands.features.VillagerCracker;
 import net.earthcomputer.clientcommands.util.MultiVersionCompat;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -195,4 +196,20 @@ public class Configs {
 
     @Config(readOnly = true)
     public static int overriddenFps = 0;
+
+    @Config(onChange = "onChangeVillagerManipulation", temporary = true)
+    public static boolean villagerManipulation = false;
+    public static void onChangeVillagerManipulation(boolean oldVillagerManipulation, boolean villagerManipulation) {
+        if (villagerManipulation) {
+            ServerBrandManager.rngWarning();
+        } else {
+            VillagerCracker.reset();
+        }
+    }
+
+    @Config(setter = @Config.Setter("setMaxVillagerManipulationWaitTicks"), temporary = true)
+    public static int maxVillagerManipulationWaitTicks = 12000;
+    public static void setMaxVillagerManipulationWaitTicks(int maxVillagerManipulationWaitTicks) {
+        Configs.maxVillagerManipulationWaitTicks = Mth.clamp(maxVillagerManipulationWaitTicks, 0, 1_000_000);
+    }
 }
