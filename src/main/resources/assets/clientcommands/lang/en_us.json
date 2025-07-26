@@ -301,15 +301,6 @@
   "commands.cvar.remove.success": "Successfully removed variable \"%s\"",
   "commands.cvar.saveFile.failed": "Could not save variables file",
 
-  "commands.cwaypoint.add.success": "Waypoint \"%s\" at %s in %s successfully added",
-  "commands.cwaypoint.alreadyExists": "A waypoint with the name \"%s\" already exists",
-  "commands.cwaypoint.edit.success": "Waypoint \"%s\" has successfully been changed to %s in %s",
-  "commands.cwaypoint.list": "- \"%s\" at %s in %s",
-  "commands.cwaypoint.list.empty": "No available waypoints",
-  "commands.cwaypoint.notFound": "No waypoint with the name \"%s\" could be found",
-  "commands.cwaypoint.remove.success": "Waypoint \"%s\" successfully removed",
-  "commands.cwaypoint.saveFailed": "Could not save waypoints file",
-
   "commands.cvillager.alreadyRunning": "Cannot brute-force villager RNG since villager RNG manipulation is already running",
   "commands.cvillager.bruteForce.failed": "Could not find a match for any goals within %s ticks",
   "commands.cvillager.bruteForce.success": "Found a match for %s priced at %s. Will open villager gui in %s ticks",
@@ -320,7 +311,7 @@
   "commands.cvillager.crack.failed": "Failed to crack villager seed (found %s seeds), re-cracking...",
   "commands.cvillager.crack.success": "Villager RNG cracked: %s",
   "commands.cvillager.failure": "Got the incorrect trade with correction of %sms; re-adjusting to %sms",
-  "commands.cvillager.goalAdded": "Added goal successfully.",
+  "commands.cvillager.goalAdded": "Added goal successfully",
   "commands.cvillager.help.noClock": "Help: villager RNG manipulation requires a 20 Hz clock",
   "commands.cvillager.help.tooFast": "Help: villager RNG manipulation requires a 20 Hz clock, please be advised that your clock seems to be running faster",
   "commands.cvillager.help.tooSlow": "Help: villager RNG manipulation requires a 20 Hz clock, please be advised that your clock seems to be running slower",
@@ -341,6 +332,15 @@
   "commands.cvillager.target.cleared": "Target entity cleared",
   "commands.cvillager.target.set": "Target entity set",
   "commands.cvillager.uncracked": "Your villager's RNG is not cracked (~18 quintillion seeds remain)",
+
+  "commands.cwaypoint.add.success": "Waypoint \"%s\" at %s in %s successfully added",
+  "commands.cwaypoint.alreadyExists": "A waypoint with the name \"%s\" already exists",
+  "commands.cwaypoint.edit.success": "Waypoint \"%s\" has successfully been changed to %s in %s",
+  "commands.cwaypoint.list": "- \"%s\" at %s in %s",
+  "commands.cwaypoint.list.empty": "No available waypoints",
+  "commands.cwaypoint.notFound": "No waypoint with the name \"%s\" could be found",
+  "commands.cwaypoint.remove.success": "Waypoint \"%s\" successfully removed",
+  "commands.cwaypoint.saveFailed": "Could not save waypoints file",
 
   "commands.cwe.playerNotFound": "Player not found",
 

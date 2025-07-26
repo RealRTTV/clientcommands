@@ -54,14 +54,14 @@ public class VillagerRngSimulator {
     static {
         try {
             CompoundTag root = NbtIo.read(new DataInputStream(Objects.requireNonNull(VillagerRngSimulator.class.getResourceAsStream("/villager_lattice_data.nbt"))));
-            ListTag lattices = root.getList("lattices", Tag.TAG_LONG_ARRAY);
+            ListTag lattices = root.getList("lattices").get();
             LATTICES = new BigMatrix[lattices.size()];
-            ListTag latticeInverses = root.getList("lattice_inverses", Tag.TAG_LONG_ARRAY);
+            ListTag latticeInverses = root.getList("lattice_inverses").get();
             INVERSE_LATTICES = new BigMatrix[lattices.size()];
-            ListTag offsets = root.getList("offsets", Tag.TAG_LONG_ARRAY);
+            ListTag offsets = root.getList("offsets").get();
             OFFSETS = new BigVector[offsets.size()];
             for (int i = 0; i < lattices.size(); i++) {
-                long[] lattice = lattices.getLongArray(i);
+                long[] lattice = lattices.getLongArray(i).get();
                 BigMatrix matrix = new BigMatrix(3, 3);
                 matrix.set(0, 0, new BigFraction(lattice[0]));
                 matrix.set(0, 1, new BigFraction(lattice[1]));
@@ -75,7 +75,7 @@ public class VillagerRngSimulator {
                 LATTICES[i] = matrix;
             }
             for (int i = 0; i < latticeInverses.size(); i++) {
-                long[] lattice_inverse = latticeInverses.getLongArray(i);
+                long[] lattice_inverse = latticeInverses.getLongArray(i).get();
                 BigMatrix matrix = new BigMatrix(3, 3);
                 matrix.set(0, 0, new BigFraction(lattice_inverse[0], 1L << 48));
                 matrix.set(0, 1, new BigFraction(lattice_inverse[1], 1L << 48));
@@ -89,7 +89,7 @@ public class VillagerRngSimulator {
                 INVERSE_LATTICES[i] = matrix;
             }
             for (int i = 0; i < offsets.size(); i++) {
-                long[] offset = offsets.getLongArray(i);
+                long[] offset = offsets.getLongArray(i).get();
                 OFFSETS[i] = new BigVector(0, offset[0], offset[1]);
             }
         } catch (IOException e) {
@@ -384,7 +384,9 @@ public class VillagerRngSimulator {
             ambientSoundTime = -80;
             int simulatedValue = 3 + this.random.nextInt(4);
             boolean leveledUp = value > 3 + 3;
-            if (leveledUp) simulatedValue += 5;
+            if (leveledUp) {
+                simulatedValue += 5;
+            }
             if (value != simulatedValue) {
                 onBadSetup("xpOrb");
             } else {
