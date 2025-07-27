@@ -69,9 +69,9 @@ public class TranslateCommand {
     private static Component createText(String translation) {
         return Component.literal(translation).withStyle(s -> s
             .withUnderlined(true)
-            .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, translation))
+            .withClickEvent(new ClickEvent.CopyToClipboard(translation))
             .withInsertion(translation)
-            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.translatable("commands.ctranslate.hoverText")))
+            .withHoverEvent(new HoverEvent.ShowText(Component.translatable("commands.ctranslate.hoverText")))
         );
     }
 }

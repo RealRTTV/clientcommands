@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.datafixers.util.Either;
+import com.mojang.logging.LogUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -12,8 +13,12 @@ import net.minecraft.advancements.critereon.MinMaxBounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.PacketEncoder;
 import net.minecraft.network.PacketListener;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -26,6 +31,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -37,6 +43,7 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 public final class CUtil {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final ScheduledExecutorService PRECISE_PACKET_TIME_EXECUTOR = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setNameFormat("Clientcommands precise packet sender #%d").build());
     private static final DynamicCommandExceptionType REGEX_TOO_SLOW_EXCEPTION = new DynamicCommandExceptionType(arg -> Component.translatable("commands.client.regexTooSlow", arg));
 
@@ -90,6 +97,19 @@ public final class CUtil {
         }
         return Arrays.stream(EquipmentSlot.values()).mapToInt(slot -> entity.getItemBySlot(slot).getEnchantments().getLevel(enchHolder.get())).max().orElse(0);
     }
+
+    public static Optional<ItemStack> parseItemStack(HolderLookup.Provider registries, Tag nbt) {
+        return ItemStack.CODEC.parse(registries.createSerializationContext(NbtOps.INSTANCE), nbt)
+            .resultOrPartial(error -> LOGGER.error("Tried to load invalid item: '{}'", error));
+    }
+
+    public static CompoundTag saveItemStack(HolderLookup.Provider registries, ItemStack stack) {
+        if (stack.isEmpty()) {
+            throw new IllegalStateException("Cannot encode empty ItemStack");
+        }
+
+        return (CompoundTag) ItemStack.CODEC.encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), stack).getOrThrow();
+	}
 
     public static void sendAtPreciseTime(long nanoTime, Packet<?> packet, BooleanSupplier shouldStillSend, Runnable mainThreadCallback) {
         sendAtPreciseTimeImpl(nanoTime, packet, shouldStillSend, mainThreadCallback);

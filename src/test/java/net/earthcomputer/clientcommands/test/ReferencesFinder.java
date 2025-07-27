@@ -218,8 +218,10 @@ public final class ReferencesFinder {
         return null;
     }
 
-    // finds the most abstract versions of the method as if referenced by a virtual method instruction, of which there could
-    // be multiple in the case of multiple interface inheritance
+    // Finds the most abstract versions of the method as if referenced by a virtual method instruction, of which there could
+    // be multiple in the case of multiple interface inheritance.
+    // Does not resolve private methods, for that, call resolveNonVirtualMethod after calling this method if this method
+    // returns nothing while indexing.
     private static List<ReferencesSet> resolveVirtualMethod(String accessorClass, ClassInfo owner, NameAndDesc nameAndDesc, ClassResolver resolver) {
         ReferencesSet resolvedInClass = null;
         List<ReferencesSet> resolvedInInterfaces = new ArrayList<>();
@@ -519,8 +521,15 @@ public final class ReferencesFinder {
             } else {
                 ClassInfo ownerInfo = getOrCreateClassInfo(interner, owner);
                 if (ownerInfo != null) {
-                    for (ReferencesSet references : resolveVirtualMethod(methodOwnerNameAndDesc.owner, ownerInfo, new NameAndDesc(name, descriptor), className -> getOrCreateClassInfo(interner, className))) {
+                    List<ReferencesSet> resolved = resolveVirtualMethod(methodOwnerNameAndDesc.owner, ownerInfo, new NameAndDesc(name, descriptor), className -> getOrCreateClassInfo(interner, className));
+                    for (ReferencesSet references : resolved) {
                         references.add(methodOwnerNameAndDesc);
+                    }
+                    if (resolved.isEmpty()) {
+                        ReferencesSet resolvedNonVirtual = resolveNonVirtualMethod(ownerInfo, new NameAndDesc(name, descriptor), className -> getOrCreateClassInfo(interner, className));
+                        if (resolvedNonVirtual != null) {
+                            resolvedNonVirtual.add(methodOwnerNameAndDesc);
+                        }
                     }
                 }
             }

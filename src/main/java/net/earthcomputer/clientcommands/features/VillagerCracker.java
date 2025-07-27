@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import java.net.URI;
 import net.earthcomputer.clientcommands.Configs;
 import net.earthcomputer.clientcommands.command.ClientCommandHelper;
 import net.earthcomputer.clientcommands.command.PingCommand;
@@ -22,10 +23,11 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundAddExperienceOrbPacket;
+import net.minecraft.network.protocol.game.ClientboundSetExperiencePacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
 import net.minecraft.network.protocol.game.ServerboundInteractPacket;
@@ -36,6 +38,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.inventory.ClickType;
@@ -168,8 +171,8 @@ public class VillagerCracker {
         if (soundEvent == SoundEvents.VILLAGER_AMBIENT || soundEvent == SoundEvents.VILLAGER_TRADE) {
             simulator.onAmbientSoundPlayed(packet.getPitch());
         } else if (soundEvent == SoundEvents.VILLAGER_NO) {
-            VillagerProfession profession = targetVillager.getVillagerData().getProfession();
-            simulator.onNoSoundPlayed(packet.getPitch(), profession != VillagerProfession.NONE && profession != VillagerProfession.NITWIT);
+            Holder<VillagerProfession> profession = targetVillager.getVillagerData().profession();
+            simulator.onNoSoundPlayed(packet.getPitch(), !profession.is(VillagerProfession.NONE) && !profession.is(VillagerProfession.NITWIT));
         } else if (soundEvent == SoundEvents.VILLAGER_YES) {
             simulator.onYesSoundPlayed(packet.getPitch());
         } else if (soundEvent == SoundEvents.GENERIC_SPLASH) {
@@ -179,13 +182,13 @@ public class VillagerCracker {
         }
     }
 
-    public static void onXpOrbSpawned(ClientboundAddExperienceOrbPacket packet) {
+    public static void onXpOrbSpawned(ExperienceOrb xpOrb) {
         Villager targetVillager = getVillager();
         if (targetVillager == null) {
             return;
         }
 
-        simulator.onXpOrbSpawned(packet.getValue());
+        simulator.onXpOrbSpawned(xpOrb.getValue());
     }
 
     private static void onTimeSync() {
@@ -355,8 +358,8 @@ public class VillagerCracker {
             return false;
         }
 
-        VillagerProfession profession = targetVillager.getVillagerData().getProfession();
-        if (profession == VillagerProfession.NONE) {
+        Holder<VillagerProfession> profession = targetVillager.getVillagerData().profession();
+        if (profession.is(VillagerProfession.NONE)) {
             simulator.onBadSetup("professionLost");
             stopRunning();
             return false;
@@ -370,9 +373,8 @@ public class VillagerCracker {
             Component.translatable("villagerManip.help.setup",
                 Component.translatable("villagerManip.help.setup.link").withStyle(style -> style
                     .withUnderlined(true)
-                    .withClickEvent(new ClickEvent(
-                        ClickEvent.Action.OPEN_URL,
-                        "https://github.com/Earthcomputer/clientcommands/blob/%s/docs/villager_rng_setup.png?raw=true".formatted(BuildInfo.INSTANCE.shortCommitHash(10))
+                    .withClickEvent(new ClickEvent.OpenUrl(
+                        URI.create("https://github.com/Earthcomputer/clientcommands/blob/%s/docs/villager_rng_setup.png?raw=true".formatted(BuildInfo.SHORT_COMMIT_HASH))
                     ))
                 )
             )

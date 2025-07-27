@@ -117,8 +117,8 @@ public class ListenCommand {
 
                 MutableComponent packetComponent = Component.literal(mojmapPacketName).withStyle(s -> s
                     .withUnderlined(true)
-                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, packetDataPreview))
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, packetData)));
+                    .withHoverEvent(new HoverEvent.ShowText(packetDataPreview))
+                    .withClickEvent(new ClickEvent.CopyToClipboard(packetData)));
 
                 switch (side) {
                     case SERVERBOUND -> source.sendFeedback(Component.translatable("commands.clisten.sentPacket", packetComponent));

@@ -1,8 +1,13 @@
 {
+  "c2cpacket.encryptionFailed": "Er ging iets mis tijdens het versleutelen van je bericht",
+  "c2cpacket.malformedPacket": "Je hebt een verkeerd C2C-pakket ontvangen:",
+  "c2cpacket.messageC2CPacket.incoming": "%s -> jij: %s",
+  "c2cpacket.messageC2CPacket.outgoing": "Jij -> %s: %s",
+
   "chorusManip.goalTooFar": "Doel is te ver weg!",
   "chorusManip.landing.failed": "Landingsmanipulatie niet mogelijk",
   "chorusManip.landing.success": "Landen op: %s, %s, %s",
-  "chorusManip.needChorusManipulation": "Chorusfruitmanipulatie is niet geactiveerd.",
+  "chorusManip.needChorusManipulation": "Chorusfruitmanipulatie is niet geactiveerd",
   "chorusManip.setGoal": "Doelgebied %s veranderd van %s naar %s",
 
   "commands.calias.notFound": "Alias \"%s\" niet gevonden",
@@ -23,12 +28,12 @@
 
   "commands.cenchant.failed": "Het is onmogelijk of het zou te lang duren om deze betoveringen te krijgen",
   "commands.cenchant.incompatible": "Onverenigbare betoveringen",
-  "commands.cenchant.needEnchantingPrediction": "Dit commando vereist betoveringspredictie om gebruikt te worden.",
-  "commands.cenchant.success": "Betoveringsmanipulatie aan het starten",
-  "commands.cenchant.uncracked": "De seed moet gekraakt zijn.",
+  "commands.cenchant.needEnchantingPrediction": "Dit commando vereist betoveringspredictie om gebruikt te worden",
+  "commands.cenchant.success": "Betoveringsmanipulatie aan het starten...",
+  "commands.cenchant.uncracked": "De seed moet gekraakt zijn",
 
   "commands.cfind.found": "%s gevonden op %s, %s blokken verwijderd",
-  "commands.cfind.keepSearching.success": "Entiteiten aan het vinden.",
+  "commands.cfind.keepSearching.success": "Entiteiten aan het vinden",
   "commands.cfind.noMatch": "Geen enkele entiteit matchte jouw query",
   "commands.cfind.success": "%s entiteiten matchten jouw query",
 
@@ -37,7 +42,7 @@
 
   "commands.cfinditem.match": "%sx %s gevonden op %s",
   "commands.cfinditem.starting": "Aan het zoeken naar %s",
-  "commands.cfinditem.starting.keepSearching": "Oneindig zoekend naar %s.",
+  "commands.cfinditem.starting.keepSearching": "Oneindig zoekend naar %s",
   "commands.cfinditem.total": "In totaal %sx %s gevonden",
 
   "commands.cfish.addGoal.success": "doel %s succesvol toegevoegd",
@@ -46,7 +51,7 @@
   "commands.cfish.error.outOfWater": "Dobber uit het water, de manipulatie zal niet werken",
   "commands.cfish.listGoals.noGoals": "Er zijn geen visdoelen",
   "commands.cfish.listGoals.success": "Er zijn %s visdoelen:",
-  "commands.cfish.needFishingManipulation": "Vismanipulatie is niet geactiveerd.",
+  "commands.cfish.needFishingManipulation": "Vismanipulatie is niet geactiveerd",
   "commands.cfish.removeGoal.success": "doel %s succesvol verwijderd",
   "commands.cfish.wrongLoot": "Kreeg niet de correcte buit met een correctie van %sms, zou %s ticks verder kunnen zijn",
 
@@ -60,7 +65,7 @@
 
   "commands.cglow.area.success": "%s oppervlakte(s) aan het gloeien",
   "commands.cglow.entity.failed": "Geen entiteiten om te gloeien",
-  "commands.cglow.entity.keepSearching.success": "Entiteiten aan het gloeien.",
+  "commands.cglow.entity.keepSearching.success": "Entiteiten aan het gloeien",
   "commands.cglow.entity.success": "%s entiteiten aan het gloeien",
 
   "commands.client.blockpos": "(%s, %s, %s)",
@@ -107,9 +112,7 @@
   "enchCrack.xpSeed.many": "Mogelijke XP seeds: %s",
   "enchCrack.xpSeed.one": "XP Seed: %s",
 
-  "itemCrack.notEnoughItems": "RNG SeedCracker kan niet worden gebruikt: niet genoeg items in spelershand",
-
-  "playerManip.notEnoughItems": "Niet genoeg items(%s van %s) om seed te manipuleren",
+  "playerManip.notEnoughItems": "Niet genoeg items om seed te manipuleren",
   "playerManip.reset": "Speler RNG manipulatie aan het herstarten. Reden: %s",
   "playerManip.reset.advancement": "Prestatie Behaald",
   "playerManip.reset.anvil": "Aambeeld Gebruikt",
@@ -141,10 +144,8 @@
   "playerManip.state.ench_cracking_1": "Betoveringsseed 1 aan het kraken",
   "playerManip.state.ench_cracking_2": "Betoveringsseed 2 aan het kraken",
   "playerManip.state.half_cracked": "Voor de helft gekraakt",
-  "playerManip.state.manipulating_enchantments": "Betoveringen aan het manipuleren",
   "playerManip.state.uncracked": "Ongekraakt",
-  "playerManip.state.waiting_dummy_enchant": "Aan het wachten op dummy betovering",
   "playerManip.throwError": "Conditie niet mogelijk of zou meer dan %s itemworpen nodig hebben",
   "playerManip.toolBreakWarning": "Waarschuwing: gereedschap heeft %s levensduur over",
-  "playerManip.uncracked": "Spelersseed moet gekraakt zijn."
+  "playerManip.uncracked": "Spelersseed moet gekraakt zijn"
 }

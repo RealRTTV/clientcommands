@@ -15,6 +15,8 @@ abstract class CheckLanguageFilesTask : DefaultTask() {
     companion object {
         private val formatSpecifierRegex = "%((?<argIndex>\\d+)\\$)?[-#+ 0,(<]*\\d*(\\.\\d+)?[tT]?[a-zA-Z%]".toRegex()
         private val allowedFormatSpecifierRegex = "%(%|(\\d+\\$)?s)".toRegex()
+
+        private val nonSpaceWhitespaceRegex = "[^\\S ]".toRegex()
     }
 
     @get:InputDirectory
@@ -265,10 +267,87 @@ abstract class CheckLanguageFilesTask : DefaultTask() {
     private fun validateValue(filename: String, lineNumber: Int, key: String, value: String, enUs: JsonObject?): Boolean {
         var errored = false
 
-        if (value.contains('§')) {
-            logger.error("$filename:$lineNumber: translation '$key' contains legacy formatting code ('§'). Use formatting in code instead")
+        val englishValue = enUs?.get(key)?.takeIf { it is JsonPrimitive && it.isString }?.let(JsonElement::getAsString)
+
+        if (!checkFormattingCodes(filename, lineNumber, key, value)) {
             errored = true
         }
+
+        if (!checkZeroWidthSpace(filename, lineNumber, key, value)) {
+            errored = true
+        }
+
+        if (!checkStrayWhitespace(filename, lineNumber, key, value)) {
+            errored = true
+        }
+
+        if (!checkNotEndWithPeriod(filename, lineNumber, key, value)) {
+            errored = true
+        }
+
+        if (!checkFormatSpecifiers(filename, lineNumber, key, value, englishValue)) {
+            errored = true
+        }
+
+        return !errored
+    }
+
+    private fun checkFormattingCodes(filename: String, lineNumber: Int, key: String, value: String): Boolean {
+        if (value.contains('§')) {
+            logger.error("$filename:$lineNumber: translation '$key' contains legacy formatting code ('§'). Use formatting in code instead")
+            return false
+        }
+
+        return true
+    }
+
+    private fun checkZeroWidthSpace(filename: String, lineNumber: Int, key: String, value: String): Boolean {
+        if (value.contains('\u200b')) {
+            logger.error("$filename:$lineNumber: translation '$key' contains zero width space")
+            return false
+        }
+
+        return true
+    }
+
+    private fun checkStrayWhitespace(filename: String, lineNumber: Int, key: String, value: String): Boolean {
+        var errored = false
+
+        if (nonSpaceWhitespaceRegex.find(value) != null) {
+            logger.error("$filename:$lineNumber: translation '$key' contains a whitespace character which isn't a space")
+            errored = true
+        }
+
+        if (value.startsWith(' ')) {
+            logger.error("$filename:$lineNumber: translation '$key' starts with a space")
+            errored = true
+        }
+
+        if (value.endsWith(' ')) {
+            logger.error("$filename:$lineNumber: translation '$key' ends with a space")
+            errored = true
+        }
+
+        if (value.contains("  ")) {
+            logger.error("$filename:$lineNumber: translation '$key' contains duplicate space")
+            errored = true
+        }
+
+        return !errored
+    }
+
+    private fun checkNotEndWithPeriod(filename: String, lineNumber: Int, key: String, value: String): Boolean {
+        // only check English, it's a mess otherwise with other languages' weird rules
+        if (filename == "en_us.json" && value.endsWith('.') && !value.endsWith("...")) {
+            logger.error("$filename:$lineNumber: translation '$key' ends with a period")
+            return false
+        }
+
+        return true
+    }
+
+    private fun checkFormatSpecifiers(filename: String, lineNumber: Int, key: String, value: String, englishValue: String?): Boolean {
+        var errored = false
 
         val formatSpecifiers = formatSpecifierRegex.findAll(value)
         val (legalFormatSpecifiers, illegalFormatSpecifiers) = formatSpecifiers.partition { allowedFormatSpecifierRegex.matches(it.value) }
@@ -326,31 +405,29 @@ abstract class CheckLanguageFilesTask : DefaultTask() {
                 }
             }
 
-            if (!mixedIndexed) {
-                enUs?.get(key)?.takeIf { it is JsonPrimitive && it.isString }?.let(JsonElement::getAsString)?.let { englishValue ->
-                    val (englishLegalFormatSpecifiers, englishIllegalFormatSpecifiers) = formatSpecifierRegex.findAll(englishValue).partition { allowedFormatSpecifierRegex.matches(it.value) }
-                    if (englishIllegalFormatSpecifiers.isEmpty() && englishLegalFormatSpecifiers.all { it.groups["argIndex"] == null }) {
-                        val numSpecifiers = englishLegalFormatSpecifiers.count { it.value.endsWith('s') }
-                        if (allowNonIndexed) {
-                            if (usedIndexes.size < numSpecifiers) {
-                                logger.error("$filename:$lineNumber: translation key '$key' does not have enough format specifiers. It only has ${usedIndexes.size} while the English has $numSpecifiers")
-                                errored = true
-                            } else if (usedIndexes.size > numSpecifiers) {
-                                logger.error("$filename:$lineNumber: translation key '$key' has extra format specifiers. It has ${usedIndexes.size} while the English only ha $numSpecifiers")
+            if (!mixedIndexed && englishValue != null) {
+                val (englishLegalFormatSpecifiers, englishIllegalFormatSpecifiers) = formatSpecifierRegex.findAll(englishValue).partition { allowedFormatSpecifierRegex.matches(it.value) }
+                if (englishIllegalFormatSpecifiers.isEmpty() && englishLegalFormatSpecifiers.all { it.groups["argIndex"] == null }) {
+                    val numSpecifiers = englishLegalFormatSpecifiers.count { it.value.endsWith('s') }
+                    if (allowNonIndexed) {
+                        if (usedIndexes.size < numSpecifiers) {
+                            logger.error("$filename:$lineNumber: translation key '$key' does not have enough format specifiers. It only has ${usedIndexes.size} while the English has $numSpecifiers")
+                            errored = true
+                        } else if (usedIndexes.size > numSpecifiers) {
+                            logger.error("$filename:$lineNumber: translation key '$key' has extra format specifiers. It has ${usedIndexes.size} while the English only ha $numSpecifiers")
+                            errored = true
+                        }
+                    } else {
+                        for (i in 0 until numSpecifiers) {
+                            if (i !in usedIndexes) {
+                                logger.error("$filename:$lineNumber: translation key '$key' does not specify '%${i + 1}\$s' which is required because the English has $numSpecifiers format specifiers")
                                 errored = true
                             }
-                        } else {
-                            for (i in 0 until numSpecifiers) {
-                                if (i !in usedIndexes) {
-                                    logger.error("$filename:$lineNumber: translation key '$key' does not specify '%${i + 1}\$s' which is required because the English has $numSpecifiers format specifiers")
-                                    errored = true
-                                }
-                            }
-                            for (i in usedIndexes) {
-                                if (i >= numSpecifiers) {
-                                    logger.error("$filename:$lineNumber: translation key '$key' specifies '%${i + 1}\$s' which is out of bounds for $numSpecifiers format specifiers existing in the English")
-                                    errored = true
-                                }
+                        }
+                        for (i in usedIndexes) {
+                            if (i >= numSpecifiers) {
+                                logger.error("$filename:$lineNumber: translation key '$key' specifies '%${i + 1}\$s' which is out of bounds for $numSpecifiers format specifiers existing in the English")
+                                errored = true
                             }
                         }
                     }

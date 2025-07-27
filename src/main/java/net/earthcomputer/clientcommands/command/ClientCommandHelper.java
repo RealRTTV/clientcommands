@@ -15,9 +15,9 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ClientCommandHelper {
 
@@ -87,20 +87,47 @@ public class ClientCommandHelper {
 
     public static Component getCommandTextComponent(MutableComponent component, String command) {
         return component.withStyle(style -> style.applyFormat(ChatFormatting.UNDERLINE)
-            .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
-            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(command))));
+            .withClickEvent(new ClickEvent.RunCommand(command))
+            .withHoverEvent(new HoverEvent.ShowText(Component.literal(command))));
     }
 
-    public static final Map<String, Runnable> runnables = new HashMap<>();
+    private static final Map<UUID, Callback> callbacks = new ConcurrentHashMap<>();
 
-    public static String registerCode(Runnable code) {
-        String randomString = new Random().ints('0', 'z' + 1)
-            .filter(i -> (i <= '9' || i >= 'A') && (i <= 'Z' || i >= 'a'))
-            .limit(10)
-            .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-            .toString();
-        runnables.put(randomString, code);
-        return randomString;
+    public static ClickEvent callbackClickEvent(Runnable runnable) {
+        return callbackClickEvent(runnable, 60_000_000_000L); // 1 minute timeout
+    }
+
+    public static ClickEvent callbackClickEvent(Runnable callback, long timeoutNanos) {
+        UUID callbackId = UUID.randomUUID();
+        callbacks.put(callbackId, new Callback(callback, System.nanoTime() + timeoutNanos));
+        return new ClickEvent.RunCommand("/ccallback " + callbackId);
+    }
+
+    public static boolean runCallback(UUID callbackId) {
+        Callback callback = callbacks.get(callbackId);
+        if (callback == null) {
+            return false;
+        }
+        callback.callback.run();
+        return true;
+    }
+
+    private record Callback(Runnable callback, long timeout) {
+        static {
+            Thread.ofVirtual().name("Clientcommands callback cleanup").start(() -> {
+                while (true) {
+                    try {
+                        // This isn't really "busy-waiting" since the wait time is so long
+                        //noinspection BusyWait
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                    long now = System.nanoTime();
+                    callbacks.values().removeIf(callback -> now - callback.timeout <= 0);
+                }
+            });
+        }
     }
 
     public static void updateOverlayProgressBar(int current, int total, int width, int time) {

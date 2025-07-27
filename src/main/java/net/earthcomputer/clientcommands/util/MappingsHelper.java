@@ -46,7 +46,7 @@ public final class MappingsHelper {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    private static final Path MAPPINGS_DIR = ClientCommands.configDir.resolve("mappings");
+    private static final Path MAPPINGS_DIR = ClientCommands.CONFIG_DIR.resolve("mappings");
 
     private static final boolean IS_DEV_ENV = FabricLoader.getInstance().isDevelopmentEnvironment();
 
@@ -59,7 +59,7 @@ public final class MappingsHelper {
     }
 
     private static final CompletableFuture<MemoryMappingTree> mojmapOfficial = Util.make(() -> {
-        String version = DetectedVersion.BUILT_IN.getName();
+        String version = DetectedVersion.BUILT_IN.name();
         try (BufferedReader reader = Files.newBufferedReader(MAPPINGS_DIR.resolve(version + ".txt"))) {
             MemoryMappingTree tree = new MemoryMappingTree();
             MappingReader.read(reader, MappingFormat.PROGUARD_FILE, tree);

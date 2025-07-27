@@ -11,9 +11,9 @@
 
   "commands.cenchant.failed": "Nemogoče je ali bi trajalo pre dolgo, da bi dobile te čare",
   "commands.cenchant.incompatible": "Nezdružljivi čari",
-  "commands.cenchant.needEnchantingPrediction": "Ta ukaz zahteva, da je omogočeno predvidevanje čaranja.",
-  "commands.cenchant.success": "Začatek manipulacije čaranja",
-  "commands.cenchant.uncracked": "Seme mora biti ugotovljeno.",
+  "commands.cenchant.needEnchantingPrediction": "Ta ukaz zahteva, da je omogočeno predvidevanje čaranja",
+  "commands.cenchant.success": "Začatek manipulacije čaranja...",
+  "commands.cenchant.uncracked": "Seme mora biti ugotovljeno",
 
   "commands.cfind.found": "Najdeno %s ob %s, %s blokov proč",
   "commands.cfind.noMatch": "Nič se ne ujema z vašo poizvedbo",
@@ -24,7 +24,7 @@
 
   "commands.cfinditem.match": "%sx %s najdeno ob %s",
   "commands.cfinditem.starting": "Iskati %s",
-  "commands.cfinditem.starting.keepSearching": "Neskončno iskanje za %s.",
+  "commands.cfinditem.starting.keepSearching": "Neskončno iskanje za %s",
   "commands.cfinditem.total": "Skupno najdeno %sx %s",
 
   "commands.client.blockpos": "(%s, %s, %s)",
@@ -60,9 +60,6 @@
   "enchCrack.xpSeed.many": "Možna XP semena: %s",
   "enchCrack.xpSeed.one": "XP Seme: %s",
 
-  "itemCrack.notEnoughItems": "Ni mogoče uporabiti RNG UgotavljalcaSemena: Ni dovolj predmetov v roki igralca",
-
-  "playerManip.reset": "Restarting player RNG manipulation. Reason: %s",
   "playerManip.reset.advancement": "Dosežen Napredek",
   "playerManip.reset.anvil": "Nakovalo Uporabljeno",
   "playerManip.reset.baneOfArthropods": "Zadet Členonožec z Uničevalcem Členonožcev",
@@ -92,8 +89,6 @@
   "playerManip.state.ench_cracking_1": "Ugotavljanje Semena Čaranja 1",
   "playerManip.state.ench_cracking_2": "Ugotavljanje Semena Čaranja 2",
   "playerManip.state.half_cracked": "Napol Ugotovljeno",
-  "playerManip.state.manipulating_enchantments": "Manipuliranje Čaranja",
   "playerManip.state.uncracked": "Neugotovljeno",
-  "playerManip.state.waiting_dummy_enchant": "Čakanje na Poskusno Čaranje",
   "playerManip.toolBreakWarning": "Opozorilo: orodju ostaja %s trajnosti"
 }

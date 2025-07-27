@@ -187,8 +187,8 @@ public class TwoPlayerGame<T, S extends Screen> {
             clickable.withStyle(style -> style
                 .withUnderlined(true)
                 .withColor(ChatFormatting.GREEN)
-                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + game.command + " open " + sender))
-                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("/" + game.command + " open " + sender))));
+                .withClickEvent(new ClickEvent.RunCommand("/" + game.command + " open " + sender))
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal("/" + game.command + " open " + sender))));
             ClientCommandHelper.sendFeedback(Component.translatable("c2cpacket.startTwoPlayerGameC2CPacket.incoming.accepted", sender, game.translate()).append(" [").append(clickable).append("]"));
         } else {
             game.getActiveGames().remove(opponent.getProfile().getId());
@@ -196,8 +196,8 @@ public class TwoPlayerGame<T, S extends Screen> {
                 style
                     .withUnderlined(true)
                     .withColor(ChatFormatting.GREEN)
-                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.translatable("c2cpacket.startTwoPlayerGameC2CPacket.incoming.accept.hover")))
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.CHANGE_PAGE, ClientCommandHelper.registerCode(() -> {
+                    .withHoverEvent(new HoverEvent.ShowText(Component.translatable("c2cpacket.startTwoPlayerGameC2CPacket.incoming.accept.hover")))
+                    .withClickEvent(ClientCommandHelper.callbackClickEvent(() -> {
                         if (!game.openGame(opponent.getProfile().getId())) {
                             game.addNewGame(opponent, false);
 
@@ -210,7 +210,7 @@ public class TwoPlayerGame<T, S extends Screen> {
 
                             ClientCommandHelper.sendFeedback("c2cpacket.startTwoPlayerGameC2CPacket.outgoing.accept");
                         }
-                    }))));
+                    })));
             ClientCommandHelper.sendFeedback(Component.translatable("c2cpacket.startTwoPlayerGameC2CPacket.incoming", sender, game.translate()).append(" [").append(clickable).append("]"));
         }
     }
@@ -235,8 +235,8 @@ public class TwoPlayerGame<T, S extends Screen> {
         clickable.withStyle(style -> style
             .withColor(ChatFormatting.GREEN)
             .withUnderlined(true)
-            .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + command + " open " + sender))
-            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("/" + command + " open " + sender))));
+            .withClickEvent(new ClickEvent.RunCommand("/" + command + " open " + sender))
+            .withHoverEvent(new HoverEvent.ShowText(Component.literal("/" + command + " open " + sender))));
         ClientCommandHelper.sendFeedback(Component.translatable("twoPlayerGame.incoming", sender, translate()).append(" [").append(clickable).append("]"));
     }
 

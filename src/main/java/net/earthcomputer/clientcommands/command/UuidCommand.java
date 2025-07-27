@@ -26,8 +26,8 @@ public class UuidCommand {
         String uuid = entity.toString();
         Component uuidComponent = Component.literal(uuid).withStyle(style -> style
             .withUnderlined(true)
-            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.translatable("chat.copy.click")))
-            .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, uuid))
+            .withHoverEvent(new HoverEvent.ShowText(Component.translatable("chat.copy.click")))
+            .withClickEvent(new ClickEvent.CopyToClipboard(uuid))
         );
 
         ClientPacketListener packetListener = source.getClient().getConnection();

@@ -139,7 +139,7 @@ public class VarCommand {
         if (rootTag == null) {
             return;
         }
-        rootTag.getAllKeys().forEach(key -> variables.put(key, rootTag.getString(key)));
+        rootTag.entrySet().forEach(entry -> variables.put(entry.getKey(), entry.getValue().asString().orElse("")));
     }
 
     public static String replaceVariables(String originalString) {

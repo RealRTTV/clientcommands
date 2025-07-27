@@ -477,7 +477,7 @@ public class ItemAndEnchantmentsPredicateArgument implements ArgumentType<ItemAn
     private record EnchantmentInstancePredicate(Holder<Enchantment> enchantment, MinMaxBounds.Ints level) implements Predicate<EnchantmentInstance> {
         @Override
         public boolean test(EnchantmentInstance enchInstance) {
-            return enchantment.equals(enchInstance.enchantment) && level.matches(enchInstance.level);
+            return enchantment.equals(enchInstance.enchantment()) && level.matches(enchInstance.level());
         }
     }
 }

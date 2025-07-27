@@ -82,7 +82,7 @@ public class BookCommand {
                 throw NO_BOOK.create();
             }
         }
-        int slot = hand == InteractionHand.MAIN_HAND ? player.getInventory().selected : Inventory.SLOT_OFFHAND;
+        int slot = hand == InteractionHand.MAIN_HAND ? player.getInventory().getSelectedSlot() : Inventory.SLOT_OFFHAND;
 
         String joinedPages = characterGenerator.limit((long) getMaxLimit() * 210).mapToObj(i -> String.valueOf((char) i)).collect(Collectors.joining());
 

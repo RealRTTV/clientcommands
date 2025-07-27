@@ -10,7 +10,7 @@
   "commands.calias.addAlias.success": "Псевдоним успешно добавлен \"%s\"",
   "commands.calias.file.readError": "Не удалось прочитать файл псевдонима",
   "commands.calias.file.writeError": "Не удалось записать в файл псевдонима",
-  "commands.calias.illegalFormatException": "Строка формата была либо неправильно сформирована, либо было предоставлено слишком мало аргументов.",
+  "commands.calias.illegalFormatException": "Строка формата была либо неправильно сформирована, либо было предоставлено слишком мало аргументов",
   "commands.calias.listAliases.noAliasesRegistered": "Псевдонимы не зарегистрированы",
   "commands.calias.listAliases.success": "%s псевдонимы зарегистрированы:",
   "commands.calias.notFound": "Псевдоним \"%s\" не найден",
@@ -45,14 +45,14 @@
   "commands.ccalcstack.success.exact": "%s %s это ровно %s стаков",
 
   "commands.ccrackrng.failed": "Не удалось взломать сид игрока",
-  "commands.ccrackrng.failed.help": "Справка: Работа с Манипуляцией Рандомного Генератора Чисел не работает на некоторых модифицированных серверах, в частности на Paper.",
+  "commands.ccrackrng.failed.help": "Справка: Работа с Манипуляцией Рандомного Генератора Чисел не работает на некоторых модифицированных серверах, в частности на Paper",
   "commands.ccrackrng.retries": "Взлом сида игрока, попытка %s/%s",
   "commands.ccrackrng.starting": "Взлом сида игрока",
   "commands.ccrackrng.success": "Player RNG взломан: %s",
 
   "commands.ccreativetab.addStack.success": "Успешно добавлено %s в \"%s\"",
   "commands.ccreativetab.addTab.alreadyExists": "Группа элементов \"%s\" уже существует",
-  "commands.ccreativetab.addTab.illegalCharacter": "Группы элементов могут содержать только символы [a-z0-9/._-].",
+  "commands.ccreativetab.addTab.illegalCharacter": "Группы элементов могут содержать только символы [a-z0-9/._-]",
   "commands.ccreativetab.addTab.success": "Группа предметов успешно добавлена \"%s\"",
   "commands.ccreativetab.changeIcon.success": "Значок \"%s\" успешно изменен с %s на %s",
   "commands.ccreativetab.notFound": "Группа предметов \"%s\" не найдена",
@@ -65,8 +65,8 @@
 
   "commands.cenchant.failed": "Невозможно или это займет слишком много времени, чтобы получить эти чары",
   "commands.cenchant.incompatible": "Несовместимые чары",
-  "commands.cenchant.needEnchantingPrediction": "Эта команда требует, чтобы предсказание зачарования было включено.",
-  "commands.cenchant.success": "Начало манипуляций с чарами",
+  "commands.cenchant.needEnchantingPrediction": "Эта команда требует, чтобы предсказание зачарования было включено",
+  "commands.cenchant.success": "Начало манипуляций с чарами...",
   "commands.cenchant.uncracked": "Сид нужно взломать",
 
   "commands.cfind.found": "Найденный %s %s, %s блоков от вас",
@@ -88,14 +88,13 @@
   "commands.cfish.error.collision": "Поплавок столкнулся с чем-то",
   "commands.cfish.error.crackFailed": "Не удалось взломать Рандомный Генератор Чисел поплавка, сервер модифицирован?",
   "commands.cfish.error.fire": "Рыболовный поплавок загорелся",
-  "commands.cfish.error.impossibleLoot": "Эту вещь нельзя получить с помощью рыбалки.",
+  "commands.cfish.error.impossibleLoot": "Эту вещь нельзя получить с помощью рыбалки",
   "commands.cfish.error.onGround": "Поплавок попал на землю",
-  "commands.cfish.error.openWater": "Рыболовный поплавок должен быть в открытой воде для добычи этих вещей.",
+  "commands.cfish.error.openWater": "Рыболовный поплавок должен быть в открытой воде для добычи этих вещей",
   "commands.cfish.error.openWater.lilyPad": "Справка: попробуйте закинуть поплавок под кувшинку",
   "commands.cfish.error.outOfWater": "Поплавок не в воде, манипуляции не сработают",
   "commands.cfish.help.tooManyEnchants": "Справка: несколько зачарований одновременно маловероятны, и их получение может занять много времени",
   "commands.cfish.listGoals.noGoals": "Нет целей для рыбалки",
-  "commands.cfish.listGoals.success": "Есть цели для рыбалки: %s",
   "commands.cfish.needFishingManipulation": "Манипуляции с рыбалкой не включены",
   "commands.cfish.removeGoal.success": "Цель успешно удалена %s",
   "commands.cfish.wrongLoot": "Не получил корректный лут с исправлением %sms, мог быть на %s тиков впереди",
@@ -115,7 +114,7 @@
   "commands.cglow.entity.keepSearching.success": "Сущности подсвечены",
   "commands.cglow.entity.success": "Светящиеся объекты: %s",
 
-  "commands.chotbar.notCreative": "Игрок должен быть в творческом режиме, чтобы восстановить панели быстрого доступа к предметам.",
+  "commands.chotbar.notCreative": "Игрок должен быть в творческом режиме, чтобы восстановить панели быстрого доступа к предметам",
   "commands.chotbar.restoredHotbar": "Панели быстрого доступа восстановленно предметов %s",
 
   "commands.ckit.create.alreadyExists": "Набор \"%s\" уже существует",
@@ -153,12 +152,12 @@
 
   "commands.crelog.failed": "Не удалось повторно войти",
 
-  "commands.crender.entities.success": "Обновлены правила рендеринга сущностей.",
+  "commands.crender.entities.success": "Обновлены правила рендеринга сущностей",
 
-  "commands.cstopsound.success.source.any": "Остановил все звуки '%s' ",
-  "commands.cstopsound.success.source.sound": "Остановлен звук '%s' в источнике '%s' ",
+  "commands.cstopsound.success.source.any": "Остановил все звуки '%s'",
+  "commands.cstopsound.success.source.sound": "Остановлен звук '%s' в источнике '%s'",
   "commands.cstopsound.success.sourceless.any": "Остановил все звуки",
-  "commands.cstopsound.success.sourceless.sound": "Остановлен звук '%s' ",
+  "commands.cstopsound.success.sourceless.sound": "Остановлен звук '%s'",
 
   "commands.ctask.list.noTasks": "В настоящее время нет выполняемых задач",
   "commands.ctask.list.success": "%s в настоящее время выполняет задачи",
@@ -180,7 +179,7 @@
 
   "commands.cuuid.success": "UUID %s равен %s",
 
-  "commands.cwiki.failed": "Не удалось получить содержимое вики.",
+  "commands.cwiki.failed": "Не удалось получить содержимое вики",
 
   "enchCrack.addInfo": "Добавить информацию",
   "enchCrack.clues": "Улики:",
@@ -201,9 +200,7 @@
   "enchCrack.xpSeed.many": "Возможный Сид Опыта: %s",
   "enchCrack.xpSeed.one": "Сид Опыта: %s",
 
-  "itemCrack.notEnoughItems": "Невозможно использовать ВзломщикСида Рандомного Генератора Чисел: Недостаточно предметов в инвенторе игрока",
-
-  "playerManip.notEnoughItems": "Недостаточно элементов (%s из %s) для манипуляций с seed",
+  "playerManip.notEnoughItems": "Недостаточно элементов для манипуляций с seed",
   "playerManip.reset": "Перезапуск манипуляции Рандомного Генератора Чисел игрока. Причина: %s",
   "playerManip.reset.advancement": "Полученно достижение",
   "playerManip.reset.amethystChime": "Ходьба по аметистам",
@@ -237,9 +234,7 @@
   "playerManip.state.ench_cracking_1": "Взламывает Сида Зачарования 1",
   "playerManip.state.ench_cracking_2": "Взламывает Сида Зачарования 2",
   "playerManip.state.half_cracked": "На половина взломанный",
-  "playerManip.state.manipulating_enchantments": "Управление чарами",
   "playerManip.state.uncracked": "Не взломанный",
-  "playerManip.state.waiting_dummy_enchant": "В ожидании тестового зачарования",
   "playerManip.throwError": "Условие невозможно или потребует более %s бросков предметов",
   "playerManip.toolBreakWarning": "Предупреждение: у инструмента осталось %s прочности",
   "playerManip.uncracked": "Сид-Игрока нуждается в взломе",

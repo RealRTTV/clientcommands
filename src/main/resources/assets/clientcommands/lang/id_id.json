@@ -1,17 +1,17 @@
 {
-  "c2cpacket.encryptionFailed": "Terjadi kegagalan saat mengenkripsi pesan Anda ",
+  "c2cpacket.encryptionFailed": "Terjadi kegagalan saat mengenkripsi pesan Anda",
   "c2cpacket.malformedPacket": "Anda telah menerima paket C2C yang formatnya salah:",
   "c2cpacket.messageC2CPacket.incoming": "%s -> Anda: %s",
   "c2cpacket.messageC2CPacket.outgoing": "Anda -> %s: %s",
   "c2cpacket.messageTooLong": "Pesan terlalu panjang (max. 255 karakter) saat ini %s karakter",
   "c2cpacket.publicKeyNotFound": "Kunci publik tidak ditemukan",
-  "c2cpacket.receivedC2CPacket": "Anda telah menerima paket C2C, tetapi Anda tidak menerima paket C2C yang masuk! Sorot untuk melihat paket mentah.",
+  "c2cpacket.receivedC2CPacket": "Anda telah menerima paket C2C, tetapi Anda tidak menerima paket C2C yang masuk! Sorot untuk melihat paket mentah",
   "c2cpacket.sentC2CPacket": "Anda telah mengirimkan paket C2C, tetapi Anda tidak menerima paket C2C yang masuk!",
 
   "chorusManip.goalTooFar": "Tujuan mendarat terlalu jauh!",
   "chorusManip.landing.failed": "Manipulasi mendarat tidak mungkin",
   "chorusManip.landing.success": "Mendarat di: %s, %s, %s",
-  "chorusManip.needChorusManipulation": "Manipulasi Buah Korus tidak di aktifkan.",
+  "chorusManip.needChorusManipulation": "Manipulasi Buah Korus tidak di aktifkan",
   "chorusManip.setGoal": "Set %s area tujuan dari %s menjadi %s",
 
   "commands.calias.addAlias.aliasAlreadyExists": "Alias \"%s\" sudah ada",
@@ -54,7 +54,7 @@
   "commands.ccalcstack.success.exact": "%s %s adalah %s tumpukan persis",
 
   "commands.ccrackrng.failed": "Gagal untuk memecahkan benih pemain",
-  "commands.ccrackrng.failed.help": "Banutan: Manipulasi RNG tidak bekerja di beberapa server yang dimodifikasi, terutapa Paper.",
+  "commands.ccrackrng.failed.help": "Banutan: Manipulasi RNG tidak bekerja di beberapa server yang dimodifikasi, terutapa Paper",
   "commands.ccrackrng.retries": "Memecahkan benih pemain, attempt %s/%s",
   "commands.ccrackrng.starting": "Memecahkan benih pemain",
   "commands.ccrackrng.success": "RNG Pemain telah di pecahkan: %s",
@@ -74,12 +74,12 @@
   "commands.cenchant.failed": "Tidak mungkin atau akan memakan waktu yang lama untuk mendapatkan pesona tersebut",
   "commands.cenchant.help.uncrackedPlayerSeed": "Bantuan: anda belum sepenuhnya memecahkan benih pemain",
   "commands.cenchant.incompatible": "Pesona tidak kompatibel",
-  "commands.cenchant.needEnchantingPrediction": "Perintah ini memerlukan prediksi pesona aktif.",
-  "commands.cenchant.success": "Memulai memanipulasi pesona",
-  "commands.cenchant.uncracked": "Seed butuh diketahui.",
+  "commands.cenchant.needEnchantingPrediction": "Perintah ini memerlukan prediksi pesona aktif",
+  "commands.cenchant.success": "Memulai memanipulasi pesona...",
+  "commands.cenchant.uncracked": "Seed butuh diketahui",
 
   "commands.cfind.found": "Menemukan %s di %s, %s block jaraknya",
-  "commands.cfind.keepSearching.success": "Mencari entitas.",
+  "commands.cfind.keepSearching.success": "Mencari entitas",
   "commands.cfind.noMatch": "Tidak ada entitas yang cocok di kuery anda",
   "commands.cfind.success": "%s entitas yang cocok di kuery anda",
 
@@ -89,7 +89,7 @@
 
   "commands.cfinditem.match": "%sx %s ketemu di %s",
   "commands.cfinditem.starting": "Mencari benda %s",
-  "commands.cfinditem.starting.keepSearching": "Mencari benda %s selamanya.",
+  "commands.cfinditem.starting.keepSearching": "Mencari benda %s selamanya",
   "commands.cfinditem.total": "Menemukan %sx %s",
 
   "commands.cfish.addGoal.success": "Berhasil menambahkan tujuan %s",
@@ -108,7 +108,7 @@
   "commands.cfish.help.tooManyEnchants": "Bantuan: beberapa pesona sekaligus tidak mungkin dan mungkin butuh waktu lama untuk mendapatkannya",
   "commands.cfish.listGoals.noGoals": "Tidak ada tujuan memancing",
   "commands.cfish.listGoals.success": "Ada %s tujuan memancing:",
-  "commands.cfish.needFishingManipulation": "Manipulasi fishing tidak dinyalakan.",
+  "commands.cfish.needFishingManipulation": "Manipulasi fishing tidak dinyalakan",
   "commands.cfish.removeGoal.success": "Berhasil menghapus tujuan %s",
   "commands.cfish.wrongLoot": "Tidak dapat mendapatkan loot yang benar dengan koreksi %sms, seharusnya %s ticks didepan",
 
@@ -132,7 +132,7 @@
 
   "commands.cglow.area.success": "Berhasil membuat %s area menjadi bersinar",
   "commands.cglow.entity.failed": "Tidak ada entitas untuk menjadi bersinar",
-  "commands.cglow.entity.keepSearching.success": "Entitas bersinar.",
+  "commands.cglow.entity.keepSearching.success": "Entitas bersinar",
   "commands.cglow.entity.success": "Berhasil membuat %s entitas menjadi bersinar",
 
   "commands.chat.success": "Berhasil membuka c🎩",
@@ -266,9 +266,7 @@
   "enchCrack.xpSeed.many": "Kemungkinan benih XP: %s",
   "enchCrack.xpSeed.one": "Benih XP: %s",
 
-  "itemCrack.notEnoughItems": "Tidak bisa menggunakkan SeedCracker RNG: Tidak cukup benda di Tangan Pemain",
-
-  "playerManip.notEnoughItems": "Tidak cukup item(%s dari %s) untuk memanipulasi seed",
+  "playerManip.notEnoughItems": "Tidak cukup item untuk memanipulasi seed",
   "playerManip.reset": "Manipulasi pemain RNG telah di reset. Alasan: %s",
   "playerManip.reset.advancement": "Mendapatkan Advancement",
   "playerManip.reset.amethystChime": "Jalan di Gugus Kecubung",
@@ -302,12 +300,10 @@
   "playerManip.state.ench_cracking_1": "Sedang memecahkan Seed Pesona ke 1",
   "playerManip.state.ench_cracking_2": "Sedang memecahkan Seed Pesona ke 2",
   "playerManip.state.half_cracked": "Setengahnya telah pecah",
-  "playerManip.state.manipulating_enchantments": "Sedang Memanipulasi Pesona",
   "playerManip.state.uncracked": "Belum pecah",
-  "playerManip.state.waiting_dummy_enchant": "Sedang menunggu pesona asal",
   "playerManip.throwError": "Kondisi tidak bisa atau akan membutuhkan lebih dari %s benda yang dilempar",
   "playerManip.toolBreakWarning": "Peringatan: Alat mempunyai sisa %s ketahanan",
-  "playerManip.uncracked": "Benih Pemain butuh dipecahkan.",
+  "playerManip.uncracked": "Benih Pemain butuh dipecahkan",
 
   "snakeGame.score": "Skor: %s",
   "snakeGame.title": "Game Ular"

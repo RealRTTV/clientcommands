@@ -95,7 +95,7 @@ public class CEnchantCommand {
                     if (result.itemThrows() < 0) {
                         source.sendFeedback(Component.translatable("enchCrack.insn.itemThrows.noDummy"));
                     } else {
-                        source.sendFeedback(Component.translatable("enchCrack.insn.itemThrows", result.itemThrows(), (float)result.itemThrows() / (Configs.itemThrowsPerTick * 20)));
+                        source.sendFeedback(Component.translatable("enchCrack.insn.itemThrows", result.itemThrows(), (float) result.itemThrows() / (Configs.itemThrowsPerTick * 20)));
                     }
                     source.sendFeedback(Component.translatable("enchCrack.insn.bookshelves", result.bookshelves()));
                     source.sendFeedback(Component.translatable("enchCrack.insn.slot", result.slot() + 1));
@@ -103,7 +103,7 @@ public class CEnchantCommand {
                     List<EnchantmentInstance> enchantments = new ArrayList<>(result.enchantments());
                     EnchantmentCracker.sortIntoTooltipOrder(level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT), enchantments);
                     for (EnchantmentInstance ench : enchantments) {
-                        source.sendFeedback(Component.literal("- ").append(Enchantment.getFullname(ench.enchantment, ench.level)));
+                        source.sendFeedback(Component.literal("- ").append(Enchantment.getFullname(ench.enchantment(), ench.level())));
                     }
                 }
             }

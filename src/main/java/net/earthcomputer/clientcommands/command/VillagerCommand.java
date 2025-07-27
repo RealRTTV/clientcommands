@@ -21,6 +21,7 @@ import net.minecraft.advancements.critereon.MinMaxBounds;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.EnchantmentTags;
@@ -267,8 +268,8 @@ public class VillagerCommand {
             throw NO_CRACKED_VILLAGER_PRESENT_EXCEPTION.create();
         }
 
-        VillagerProfession profession = targetVillager.getVillagerData().getProfession();
-        if (profession == VillagerProfession.NONE) {
+        Holder<VillagerProfession> profession = targetVillager.getVillagerData().profession();
+        if (profession.is(VillagerProfession.NONE)) {
             throw NO_PROFESSION_EXCEPTION.create();
         }
 
@@ -276,14 +277,14 @@ public class VillagerCommand {
             throw ALREADY_RUNNING_EXCEPTION.create();
         }
 
-        int currentLevel = targetVillager.getVillagerData().getLevel();
+        int currentLevel = targetVillager.getVillagerData().level();
         if (!levelUp && currentLevel != 1) {
             throw NOT_LEVEL_1_EXCEPTION.create();
         }
 
         int crackedLevel = levelUp ? currentLevel + 1 : currentLevel;
 
-        VillagerTrades.ItemListing[] listings = VillagerTrades.TRADES.get(profession).getOrDefault(crackedLevel, new VillagerTrades.ItemListing[0]);
+        VillagerTrades.ItemListing[] listings = VillagerTrades.TRADES.get(profession.unwrapKey().get()).getOrDefault(crackedLevel, new VillagerTrades.ItemListing[0]);
         // 39 ticks ahead instead of 40 because the two trade xp calls act as one effective tick.
         // this means we have to do our trades for one tick into the future because we'll be re-adjusting for this
         int adjustmentTicks = levelUp ? -39 : 0;

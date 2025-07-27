@@ -5,13 +5,13 @@
   "c2cpacket.messageC2CPacket.outgoing": "du -> %s: %s",
   "c2cpacket.messageTooLong": "Nachricht zu lange (max. 255 Zeichen) %s Zeichen gefunden",
   "c2cpacket.publicKeyNotFound": "Öffentlicher Schlüssel nicht gefunden",
-  "c2cpacket.receivedC2CPacket": "Du hast ein C2C-Paket erhalten, aber du akzeptierst keine eingehenden C2C-Pakete! Hover um das rohe Paket zu sehen.",
+  "c2cpacket.receivedC2CPacket": "Du hast ein C2C-Paket erhalten, aber du akzeptierst keine eingehenden C2C-Pakete! Hover um das rohe Paket zu sehen",
   "c2cpacket.sentC2CPacket": "Du hast ein C2C-Paket gesendet, aber du akzeptierst keine eingehenden C2C-Pakete!",
 
   "chorusManip.goalTooFar": "Ziel ist zu weit entfernt!",
   "chorusManip.landing.failed": "Landungsmanipulation nicht möglich",
   "chorusManip.landing.success": "Landung auf: %s, %s, %s",
-  "chorusManip.needChorusManipulation": "Chorusfruchtmanipulation muss aktiviert sein, um diesen Befehl auszuführen.",
+  "chorusManip.needChorusManipulation": "Chorusfruchtmanipulation muss aktiviert sein, um diesen Befehl auszuführen",
   "chorusManip.setGoal": "%s-Zielbereich von %s bis %s festgelegt",
 
   "commands.calias.addAlias.aliasAlreadyExists": "Alias \"%s\" existiert bereits",
@@ -54,7 +54,7 @@
   "commands.ccalcstack.success.exact": "%s %s sind genau %s Stapel",
 
   "commands.ccrackrng.failed": "Knacken des Spielerseeds gescheitert",
-  "commands.ccrackrng.failed.help": "Hilfe: RNG-Manipulation funktioniert nicht auf manchen modifizierten Servern, im Besonderen nicht auf Paper.",
+  "commands.ccrackrng.failed.help": "Hilfe: RNG-Manipulation funktioniert nicht auf manchen modifizierten Servern, im Besonderen nicht auf Paper",
   "commands.ccrackrng.retries": "Knacke Spielerseed, Versuch %s/%s",
   "commands.ccrackrng.starting": "Knacke Spielerseed",
   "commands.ccrackrng.success": "Spieler-RNG geknackt: %s",
@@ -75,9 +75,9 @@
   "commands.cenchant.failed": "Es ist unmöglich oder würde zu lange brauchen, diese Verzauberungen zu bekommen",
   "commands.cenchant.help.uncrackedPlayerSeed": "Hilfe: du hast den Spielerseed nicht vollständig geknackt",
   "commands.cenchant.incompatible": "Unvereinbare Verzauberungen",
-  "commands.cenchant.needEnchantingPrediction": "Verzauberungsprognose muss aktiviert sein, um diesen Befehl auszuführen.",
-  "commands.cenchant.success": "Verzauberungsmanipulation beginnt",
-  "commands.cenchant.uncracked": "Seed muss geknackt sein.",
+  "commands.cenchant.needEnchantingPrediction": "Verzauberungsprognose muss aktiviert sein, um diesen Befehl auszuführen",
+  "commands.cenchant.success": "Verzauberungsmanipulation beginnt...",
+  "commands.cenchant.uncracked": "Seed muss geknackt sein",
 
   "commands.cfind.found": "Fand %s an %s, %s Blöcke entfernt",
   "commands.cfind.keepSearching.success": "Finde Objekte",
@@ -90,7 +90,7 @@
 
   "commands.cfinditem.match": "%sx %s wurden an %s gefunden",
   "commands.cfinditem.starting": "Suche nach %s",
-  "commands.cfinditem.starting.keepSearching": "Suche unendlich lange nach %s.",
+  "commands.cfinditem.starting.keepSearching": "Suche unendlich lange nach %s",
   "commands.cfinditem.total": "Fand insgesamt %sx %s",
 
   "commands.cfish.addGoal.success": "Ziel %s erfolgreich hinzugefügt",
@@ -282,9 +282,7 @@
   "enchCrack.xpSeed.many": "Anzahl der möglichen XP-Seeds: %s",
   "enchCrack.xpSeed.one": "XP-Seed: %s",
 
-  "itemCrack.notEnoughItems": "Kann RNG-SeedCracker nicht benutzen: Nicht genug Gegenstände in der Hand des Spielers",
-
-  "playerManip.notEnoughItems": "Nicht genug Gegenstände (%s von %s), um Seed zu manipulieren",
+  "playerManip.notEnoughItems": "Nicht genug Gegenstände, um Seed zu manipulieren",
   "playerManip.reset": "Starte Spieler-RNG-Manipulation neu. Grund: %s",
   "playerManip.reset.advancement": "Fortschritt erzielt",
   "playerManip.reset.amethystChime": "Auf einen Amethystkristall gestiegen",
@@ -318,12 +316,10 @@
   "playerManip.state.ench_cracking_1": "Knacke Verzauberungsseed 1",
   "playerManip.state.ench_cracking_2": "Knacke Verzauberungsseed 2",
   "playerManip.state.half_cracked": "Halb Geknackt",
-  "playerManip.state.manipulating_enchantments": "Manipuliere Verzauberungen",
   "playerManip.state.uncracked": "Ungeknackt",
-  "playerManip.state.waiting_dummy_enchant": "Warte auf eine Dummy-Verzauberung",
   "playerManip.throwError": "Bedingung nicht möglich oder würde mehr als %s Würfe von Gegenstände erfordern",
   "playerManip.toolBreakWarning": "Warnung: Werkzeug hat nur mehr %s Haltbarkeit übrig",
-  "playerManip.uncracked": "Spieler-Seed muss geknackt sein.",
+  "playerManip.uncracked": "Spieler-Seed muss geknackt sein",
 
   "snakeGame.score": "Punkte: %s",
   "snakeGame.title": "Snake"

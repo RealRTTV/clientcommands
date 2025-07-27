@@ -27,6 +27,7 @@ public final class EntityRandomCallHierarchyTest {
                 .recurseThrough("net/minecraft/world/entity/Entity", "getRandomY", "()D")
                 .recurseThrough("net/minecraft/world/entity/Entity", "getRandomZ", "(D)D")
                 .recurseThrough("net/minecraft/server/level/ServerPlayer", "playNotifySound", "(Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V")
+                .recurseThrough("net/minecraft/world/entity/LivingEntity", "makeDrownParticles", "()V")
                 .recurseThrough("net/minecraft/world/entity/LivingEntity", "spawnItemParticles", "(Lnet/minecraft/world/item/ItemStack;I)V")
                 .walk((reference, callStack) -> {
                     if (!reference.owner().startsWith("net/minecraft/world/entity/ai/")) {

@@ -36,7 +36,7 @@ public class ChatListenerMixin {
             if (OutgoingPacketFilter.removeIfContains(packetString)) {
                 this.minecraft.gui.getChat().addMessage(Component.translatable("c2cpacket.sentC2CPacket"));
             } else {
-                this.minecraft.gui.getChat().addMessage(Component.translatable("c2cpacket.receivedC2CPacket").withStyle(s -> s.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, boundChatType.decorate(chatMessage.decoratedContent())))));
+                this.minecraft.gui.getChat().addMessage(Component.translatable("c2cpacket.receivedC2CPacket").withStyle(s -> s.withHoverEvent(new HoverEvent.ShowText(boundChatType.decorate(chatMessage.decoratedContent())))));
             }
             cir.setReturnValue(false);
             return;
